@@ -1,0 +1,17 @@
+{
+  "name": "@aboba/back",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "nx run-many -t build",
+    "serve": "nx run-many -t serve",
+    "test": "nx run-many -t test"
+  },
+  "devDependencies": {
+    "nx": "19.0.0"
+  },
+  "workspaces": [
+    "services/*",
+    "apps/*"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "aboba",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "back:build": "cd back && cargo build --release",
+    "back:ping": "cd back && cargo run --release -p ping",
+    "back:gateway": "cd back && cargo run --release -p api-gateway",
+    "front:wasm": "cd front && ./gradlew :composeApp:wasmJsBrowserDevelopmentRun",
+    "front:android": "cd front && ./gradlew :composeApp:installDebug"
+  }
+}
