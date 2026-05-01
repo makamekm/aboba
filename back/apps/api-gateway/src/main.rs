@@ -84,7 +84,7 @@ async fn proxy_handler(req: Request) -> Result<Response<Body>, AppError> {
     info!("Incoming request: {} {}", method, path);
 
     let ping_service_url = std::env::var("GATEWAY_PING_SERVICE_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:3001".to_string());
+        .unwrap_or_else(|_| "http://127.0.0.1:3002".to_string());
 
     let target_url = if path.starts_with("/api/ping") {
         format!("{}/ping", ping_service_url.trim_end_matches('/'))

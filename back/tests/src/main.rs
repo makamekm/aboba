@@ -5,12 +5,12 @@ use std::time::Duration;
 #[tokio::test]
 async fn test_ping_service_health() {
     let client = reqwest::Client::new();
-    let resp = client
-        .get("http://127.0.0.1:3001/health")
-        .timeout(Duration::from_secs(5))
-        .send()
-        .await
-        .expect("Failed to connect to ping service");
+        let resp = client
+            .get("http://127.0.0.1:3002/health")
+            .timeout(Duration::from_secs(5))
+            .send()
+            .await
+            .expect("Failed to connect to ping service");
 
     assert_eq!(resp.status(), 200);
     let json: serde_json::Value = resp.json().await.unwrap();
@@ -23,7 +23,7 @@ async fn test_ping_service_health() {
 async fn test_ping_service_ping_endpoint() {
     let client = reqwest::Client::new();
     let resp = client
-        .post("http://127.0.0.1:3001/ping")
+        .post("http://127.0.0.1:3002/ping")
         .json(&json!({"message": "Ping"}))
         .timeout(Duration::from_secs(5))
         .send()
@@ -39,7 +39,7 @@ async fn test_ping_service_ping_endpoint() {
 async fn test_ping_service_unknown_command() {
     let client = reqwest::Client::new();
     let resp = client
-        .post("http://127.0.0.1:3001/ping")
+        .post("http://127.0.0.1:3002/ping")
         .json(&json!({"message": "Hello"}))
         .timeout(Duration::from_secs(5))
         .send()
@@ -115,7 +115,7 @@ async fn test_end_to_end_flow() {
 
     // 2. Check ping service health
     let resp = client
-        .get("http://127.0.0.1:3001/health")
+        .get("http://127.0.0.1:3002/health")
         .timeout(Duration::from_secs(5))
         .send()
         .await
