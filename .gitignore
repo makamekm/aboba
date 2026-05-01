@@ -1,0 +1,5 @@
+target/
+build/
+.gradle/
+node_modules/
+*.lock
