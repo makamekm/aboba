@@ -1,11 +1,14 @@
 [workspace]
-members = ["services/*", "apps/*"]
+members = ["services/*", "apps/*", "tests"]
 resolver = "2"
 
 [workspace.dependencies]
 tokio = { version = "1", features = ["full"] }
 axum = "0.7"
 tower = "0.4"
-tower-http = { version = "0.5", features = ["cors"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
