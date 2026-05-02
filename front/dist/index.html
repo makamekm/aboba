@@ -196,9 +196,9 @@
             const startPercent = (chatScreen.getBoundingClientRect().left / window.innerWidth) * 100;
             const startTime = performance.now();
             
-            // Opening drawer = going TO drawer (targetPercent = 100) = easeIn (smooth at end)
-            // Opening chat = going TO chat (targetPercent = 0) = easeOut (sharp at end)
-            const easing = targetPercent > startPercent ? easeInCubic : easeOutCubic;
+            // Opening drawer (chat goes right, drawer appears) = easeOut: fast start, slow end
+            // Closing drawer (chat returns, drawer hides) = easeIn: slow start, fast end
+            const easing = targetPercent > startPercent ? easeOutCubic : easeInCubic;
             
             function step(now) {
                 const elapsed = now - startTime;
