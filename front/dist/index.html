@@ -170,24 +170,15 @@
             will-change: transform;
             transform: translateX(0);
             transition: transform 0s;
+            touch-action: pan-y; /* Allow vertical scroll, handle horizontal in JS */
         }
         
         .chat-screen.animating {
             transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
         }
         
-        .chat-screen.scaled {
-            transform: scale(0.95) translateX(0);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        
         .chat-screen.open {
             transform: translateX(85%);
-        }
-        
-        .chat-screen.open.scaled {
-            transform: scale(0.95) translateX(calc(85% / 0.95));
         }
         
         /* ========== BACKDROP ========== */
@@ -702,9 +693,8 @@
         let lastX = 0;
         let lastTime = 0;
         let rafId = null;
-        const EDGE_THRESHOLD = 30; // px from right edge to start swipe
-        const VELOCITY_THRESHOLD = 0.5; // px/ms to trigger snap
-        const POSITION_THRESHOLD = 0.4; // 40% of drawer width to snap
+        let startY = 0;
+        let isHorizontalDrag = false;
 
         const drawer = document.getElementById('drawer');
         const chatScreen = document.getElementById('chatScreen');
@@ -752,32 +742,39 @@
         });
 
         // ======== TOUCH HANDLING (Telegram-style) ========
-        function getTouchX(e) {
-            return e.touches[0].clientX;
-        }
+        const EDGE_THRESHOLD = 60; // px from right edge to start swipe
+        const VELOCITY_THRESHOLD = 0.4; // px/ms to trigger snap
+        const POSITION_THRESHOLD = 0.35; // 35% of drawer width to snap
+        
+        function getTouchX(e) { return e.touches[0].clientX; }
+        function getTouchY(e) { return e.touches[0].clientY; }
 
         function setChatPosition(x) {
             const clampedX = Math.max(0, Math.min(x, drawerWidth));
             chatScreen.style.transform = `translateX(${clampedX}px)`;
             
-            // Also move drawer
+            // Move drawer with parallax effect
             const drawerX = Math.max(-drawerWidth, Math.min(0, clampedX - drawerWidth));
             drawer.style.transform = `translateX(${drawerX}px)`;
             
-            // Backdrop opacity based on position
+            // Backdrop opacity
             const progress = clampedX / drawerWidth;
             backdrop.style.opacity = progress * 0.5;
-            backdrop.style.pointerEvents = progress > 0.1 ? 'auto' : 'none';
+            backdrop.style.pointerEvents = progress > 0.05 ? 'auto' : 'none';
         }
 
-        document.addEventListener('touchstart', (e) => {
+        // Touch start on chat screen
+        chatScreen.addEventListener('touchstart', (e) => {
             const touchX = getTouchX(e);
+            const touchY = getTouchY(e);
             const screenWidth = window.innerWidth;
             
             // Edge swipe to open (from right edge, only when drawer closed)
             if (!isDrawerOpen && touchX > screenWidth - EDGE_THRESHOLD) {
                 isDragging = true;
+                isHorizontalDrag = true;
                 startX = touchX;
+                startY = touchY;
                 currentX = 0;
                 lastX = touchX;
                 lastTime = Date.now();
@@ -787,10 +784,12 @@
                 return;
             }
             
-            // Swipe to close (from left side of chat screen when drawer open)
-            if (isDrawerOpen && touchX < drawerWidth + 20) {
+            // Swipe to close (when drawer open, touch anywhere on left portion)
+            if (isDrawerOpen && touchX < drawerWidth) {
                 isDragging = true;
+                isHorizontalDrag = true;
                 startX = touchX;
+                startY = touchY;
                 currentX = drawerWidth;
                 lastX = touchX;
                 lastTime = Date.now();
@@ -799,14 +798,34 @@
                 e.preventDefault();
                 return;
             }
+            
+            // When drawer open and touch on right side of chat, just close immediately
+            if (isDrawerOpen && touchX >= drawerWidth) {
+                closeDrawer();
+                return;
+            }
         }, { passive: false });
 
-        document.addEventListener('touchmove', (e) => {
+        chatScreen.addEventListener('touchmove', (e) => {
             if (!isDragging) return;
             
             const touchX = getTouchX(e);
+            const touchY = getTouchY(e);
             const now = Date.now();
             const dt = now - lastTime;
+            
+            // Determine if horizontal drag on first move
+            if (!isHorizontalDrag && dt > 0) {
+                const dx = Math.abs(touchX - startX);
+                const dy = Math.abs(touchY - startY);
+                if (dx > dy && dx > 10) {
+                    isHorizontalDrag = true;
+                } else if (dy > dx && dy > 10) {
+                    // Vertical scroll, cancel drag
+                    isDragging = false;
+                    return;
+                }
+            }
             
             if (dt > 0) {
                 velocity = (touchX - lastX) / dt;
@@ -832,9 +851,12 @@
             e.preventDefault();
         }, { passive: false });
 
-        document.addEventListener('touchend', (e) => {
+        chatScreen.addEventListener('touchend', (e) => {
             if (!isDragging) return;
             isDragging = false;
+            
+            if (!isHorizontalDrag) return;
+            isHorizontalDrag = false;
             
             chatScreen.classList.add('animating');
             
@@ -846,41 +868,26 @@
             if (!isDrawerOpen) {
                 // Was trying to open
                 if (shouldOpen) {
-                    isDrawerOpen = true;
-                    drawer.classList.add('open');
-                    chatScreen.classList.add('open');
-                    backdrop.classList.add('visible');
-                    document.body.style.overflow = 'hidden';
-                    chatScreen.style.transform = '';
-                    drawer.style.transform = '';
+                    openDrawer();
                 } else {
-                    chatScreen.classList.remove('open');
-                    backdrop.classList.remove('visible');
-                    chatScreen.style.transform = '';
-                    drawer.style.transform = '';
+                    closeDrawer();
                 }
             } else {
                 // Was trying to close
                 if (!shouldOpen || velocity > VELOCITY_THRESHOLD) {
-                    isDrawerOpen = false;
-                    drawer.classList.remove('open');
-                    chatScreen.classList.remove('open');
-                    backdrop.classList.remove('visible');
-                    document.body.style.overflow = '';
-                    chatScreen.style.transform = '';
-                    drawer.style.transform = '';
+                    closeDrawer();
                 } else {
-                    chatScreen.classList.add('open');
-                    backdrop.classList.add('visible');
-                    chatScreen.style.transform = '';
-                    drawer.style.transform = '';
+                    openDrawer();
                 }
             }
         });
 
-        // Prevent scrolling when drawer is being dragged
-        document.addEventListener('touchmove', (e) => {
-            if (isDragging) e.preventDefault();
+        // Also handle touch on backdrop to close
+        backdrop.addEventListener('touchstart', (e) => {
+            if (isDrawerOpen) {
+                closeDrawer();
+                e.preventDefault();
+            }
         }, { passive: false });
 
         // ======== CHAT FUNCTIONS ========
