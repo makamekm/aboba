@@ -716,10 +716,34 @@
             else closeDrawer();
         }
         
+        function tCancel() {
+            if (!tDragging) return;
+            tDragging = false;
+            chatScreen.style.touchAction = 'pan-y';
+            chatScreen.classList.add('animating');
+            
+            // Always return to original position on cancel
+            if (!isDrawerOpen) {
+                tSetPos(0);
+                setTimeout(() => {
+                    chatScreen.style.transform = '';
+                    drawer.style.transform = '';
+                    backdrop.style.opacity = '';
+                    backdrop.style.visibility = '';
+                }, 350);
+            } else {
+                tSetPos(drawerWidth);
+                setTimeout(() => {
+                    chatScreen.style.transform = '';
+                    drawer.style.transform = '';
+                }, 350);
+            }
+        }
+        
         chatScreen.addEventListener('touchstart', tStart, {passive: true});
         chatScreen.addEventListener('touchmove', tMove, {passive: false});
         chatScreen.addEventListener('touchend', tEnd, {passive: true});
-        chatScreen.addEventListener('touchcancel', tEnd, {passive: true});
+        chatScreen.addEventListener('touchcancel', tCancel, {passive: true});
 
         // ======== CHAT FUNCTIONS ========
         function selectChat(index) {
