@@ -177,24 +177,43 @@
         }
         
         // ===== TOUCH - works on both chat and drawer =====
-        let sx = 0, sy = 0, dragging = false;
+        let sx = 0, sy = 0, dragging = false, hasMoved = false;
+        let lastX = 0, lastTime = 0, velocity = 0;
         
         function onTouchStart(e) {
             if (e.touches.length !== 1) return;
             sx = e.touches[0].clientX;
             sy = e.touches[0].clientY;
+            lastX = sx;
+            lastTime = Date.now();
+            velocity = 0;
             dragging = true;
+            hasMoved = false;
         }
         
         function onTouchMove(e) {
             if (!dragging || e.touches.length !== 1) return;
-            const dx = e.touches[0].clientX - sx;
-            const dy = e.touches[0].clientY - sy;
+            const x = e.touches[0].clientX;
+            const y = e.touches[0].clientY;
+            const dx = x - sx;
+            const dy = y - sy;
             
+            // Dead zone - ignore tiny movements
+            if (!hasMoved && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+            hasMoved = true;
+            
+            // Cancel if vertical
             if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
                 dragging = false;
                 return;
             }
+            
+            // Calculate velocity
+            const now = Date.now();
+            const dt = now - lastTime;
+            if (dt > 0) velocity = (x - lastX) / dt;
+            lastX = x;
+            lastTime = now;
             
             const w = window.innerWidth;
             
@@ -227,7 +246,15 @@
             chatScreen.style.transition = '';
             chatScreen.style.transform = '';
             
-            // Snap based on position
+            // Velocity check: fast swipe = switch state
+            const VELOCITY_THRESHOLD = 0.5; // px/ms
+            if (Math.abs(velocity) > VELOCITY_THRESHOLD) {
+                if (velocity > 0 && !drawerOpen) openDrawer();
+                else if (velocity < 0 && drawerOpen) closeDrawer();
+                return;
+            }
+            
+            // Position check
             const rect = chatScreen.getBoundingClientRect();
             if (rect.left > window.innerWidth * 0.3) {
                 openDrawer();
