@@ -201,87 +201,10 @@
             pointer-events: auto;
         }
         
-        /* ========== CHAT HEADER ========== */
-        .chat-header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 56px;
-            padding: 0 16px;
-            padding-top: max(0px, env(safe-area-inset-top));
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(13,13,13,0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            z-index: 10;
-        }
-        
-        .chat-header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .menu-btn {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-            cursor: pointer;
-            padding: 8px;
-        }
-        
-        .menu-btn span {
-            display: block;
-            width: 20px;
-            height: 2px;
-            background: rgba(255,255,255,0.7);
-            border-radius: 1px;
-            transition: all 0.3s;
-        }
-        
-        .chat-title {
-            font-size: 17px;
-            font-weight: 600;
-            color: #fff;
-        }
-        
-        .chat-header-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .header-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.06);
-            border: none;
-            color: rgba(255,255,255,0.7);
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .header-btn:active {
-            background: rgba(255,255,255,0.12);
-        }
-        
         /* ========== MESSAGES AREA ========== */
         .messages-container {
             position: absolute;
-            top: 56px;
+            top: 0;
             left: 0;
             right: 0;
             bottom: 80px;
@@ -289,6 +212,7 @@
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             padding: 16px;
+            padding-top: max(16px, env(safe-area-inset-top));
             padding-bottom: 24px;
         }
         
@@ -608,22 +532,6 @@
 
     <!-- Main Chat Screen -->
     <div class="chat-screen" id="chatScreen">
-        <!-- Chat Header -->
-        <div class="chat-header">
-            <div class="chat-header-left">
-                <div class="menu-btn" id="menuBtn" onclick="toggleDrawer()">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-                <div class="chat-title" id="chatTitle">Aboba AI</div>
-            </div>
-            <div class="chat-header-right">
-                <button class="header-btn" onclick="shareChat()">↗</button>
-                <button class="header-btn" onclick="showOptions()">⋯</button>
-            </div>
-        </div>
-
         <!-- Messages -->
         <div class="messages-container" id="messagesContainer">
             <div class="message ai">
@@ -733,108 +641,72 @@
             chatScreen.classList.remove('animating');
         });
 
-        // ======== TOUCH HANDLING - v4: Simple and reliable ========
+        // ======== TOUCH HANDLING - v5: Ultra simple ========
         
         let startX = 0;
         let startY = 0;
         let isDragging = false;
         let currentX = 0;
-
-        function handleStart(x, y) {
-            startX = x;
-            startY = y;
-            isDragging = true;
-            currentX = 0;
-            chatScreen.classList.remove('animating');
+        
+        // Helper: set positions during drag
+        function setDragPos(x) {
+            currentX = Math.max(0, Math.min(x, drawerWidth));
+            chatScreen.style.transform = 'translateX(' + currentX + 'px)';
+            drawer.style.transform = 'translateX(' + (currentX - drawerWidth) + 'px)';
+            backdrop.style.opacity = (currentX / drawerWidth) * 0.5;
+            backdrop.style.visibility = currentX > 0 ? 'visible' : 'hidden';
         }
-
-        function handleMove(x, y) {
-            if (!isDragging) return;
+        
+        // Touch START
+        chatScreen.ontouchstart = function(e) {
+            if (e.touches.length !== 1) return;
+            const t = e.touches[0];
+            startX = t.clientX;
+            startY = t.clientY;
+            isDragging = true;
+            chatScreen.classList.remove('animating');
+        };
+        
+        // Touch MOVE
+        chatScreen.ontouchmove = function(e) {
+            if (!isDragging || e.touches.length !== 1) return;
+            const t = e.touches[0];
+            const dx = t.clientX - startX;
+            const dy = t.clientY - startY;
             
-            const dx = x - startX;
-            const dy = y - startY;
-            
-            // If vertical scroll, cancel
-            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
+            // Vertical scroll - cancel drag
+            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 15) {
                 isDragging = false;
                 return;
             }
             
-            // For drawer opening: must swipe LEFT (negative dx)
-            if (!isDrawerOpen && dx < -10) {
-                currentX = Math.min(-dx, drawerWidth);
-                chatScreen.style.transform = 'translateX(' + currentX + 'px)';
-                drawer.style.transform = 'translateX(' + (currentX - drawerWidth) + 'px)';
-                backdrop.style.opacity = (currentX / drawerWidth) * 0.5;
+            // Swipe LEFT (dx < 0) to OPEN drawer
+            if (!isDrawerOpen && dx < -15) {
+                setDragPos(-dx);
             }
             
-            // For drawer closing: must swipe RIGHT (positive dx)
-            if (isDrawerOpen && dx > 10) {
-                currentX = Math.max(0, drawerWidth - dx);
-                chatScreen.style.transform = 'translateX(' + currentX + 'px)';
-                drawer.style.transform = 'translateX(' + (currentX - drawerWidth) + 'px)';
-                backdrop.style.opacity = (currentX / drawerWidth) * 0.5;
+            // Swipe RIGHT (dx > 0) to CLOSE drawer
+            if (isDrawerOpen && dx > 15) {
+                setDragPos(drawerWidth - dx);
             }
-        }
-
-        function handleEnd() {
+        };
+        
+        // Touch END
+        function endDrag() {
             if (!isDragging) return;
             isDragging = false;
-            
             chatScreen.classList.add('animating');
             
-            const progress = currentX / drawerWidth;
-            
-            if (!isDrawerOpen) {
-                // Opening: open if moved past 30%
-                if (progress > 0.3) {
-                    openDrawer();
-                } else {
-                    closeDrawer();
-                }
+            // Snap: open if > 40% width, close if < 40%
+            if (currentX > drawerWidth * 0.4) {
+                openDrawer();
             } else {
-                // Closing: close if moved past 70% (i.e. less than 30% open)
-                if (progress < 0.7) {
-                    closeDrawer();
-                } else {
-                    openDrawer();
-                }
+                closeDrawer();
             }
         }
-
-        // Mouse events (for desktop testing)
-        chatScreen.onmousedown = function(e) {
-            handleStart(e.clientX, e.clientY);
-        };
         
-        document.onmousemove = function(e) {
-            handleMove(e.clientX, e.clientY);
-        };
-        
-        document.onmouseup = function() {
-            handleEnd();
-        };
-
-        // Touch events
-        chatScreen.ontouchstart = function(e) {
-            if (e.touches.length === 1) {
-                handleStart(e.touches[0].clientX, e.touches[0].clientY);
-            }
-        };
-        
-        document.ontouchmove = function(e) {
-            if (e.touches.length === 1) {
-                handleMove(e.touches[0].clientX, e.touches[0].clientY);
-            }
-        };
-        
-        document.ontouchend = function() {
-            handleEnd();
-        };
-        
-        document.ontouchcancel = function() {
-            handleEnd();
-        };
+        chatScreen.ontouchend = endDrag;
+        chatScreen.ontouchcancel = endDrag;
 
         // ======== CHAT FUNCTIONS ========
         function selectChat(index) {
