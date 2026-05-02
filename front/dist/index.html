@@ -190,7 +190,7 @@
         // easeIn: slow start, fast end (opening drawer — smooth at end)
         function easeInCubic(t) { return t * t * t; }
         
-        function animateTo(targetPercent, duration = 150) {
+        function animateTo(targetPercent, duration = 80) {
             if (animFrame) cancelAnimationFrame(animFrame);
             
             const startPercent = (chatScreen.getBoundingClientRect().left / window.innerWidth) * 100;
