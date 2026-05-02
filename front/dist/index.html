@@ -30,15 +30,13 @@
             position: fixed;
             top: 0;
             left: 0;
-            bottom: 0;
-            width: 85%;
-            max-width: 340px;
+            width: 100%;
+            height: 100%;
             background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
             z-index: 100;
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
-            border-right: 1px solid rgba(255,255,255,0.05);
             transform: translateX(-100%);
             transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
         }
@@ -158,28 +156,18 @@
         
         /* ========== MAIN CHAT SCREEN ========== */
         .chat-screen {
+        /* ========== CHAT SCREEN (Main) ========== */
+        .chat-screen {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: #0d0d0d;
             z-index: 200;
-            will-change: transform;
-            transform: translateX(0);
-            transition: transform 0s;
-        }
-        
-        .chat-screen.animating {
-            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-        }
-        
-        .chat-screen.open {
-            transform: translateX(85%);
-        }
-        
-        .chat-screen.dragging {
-            touch-action: none;
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         
         /* ========== BACKDROP ========== */
@@ -594,7 +582,6 @@
 
         // ======== DRAWER STATE ========
         let isDrawerOpen = false;
-        let drawerWidth = 0;
 
         const drawer = document.getElementById('drawer');
         const chatScreen = document.getElementById('chatScreen');
@@ -605,30 +592,17 @@
         const sendBtn = document.getElementById('sendBtn');
         const typingIndicator = document.getElementById('typingIndicator');
 
-        // Calculate drawer width
-        function updateDrawerWidth() {
-            drawerWidth = Math.min(window.innerWidth * 0.85, 340);
-        }
-        updateDrawerWidth();
-        window.addEventListener('resize', updateDrawerWidth);
-
         // ======== DRAWER OPEN/CLOSE ========
         function openDrawer() {
             isDrawerOpen = true;
             drawer.classList.add('open');
-            chatScreen.classList.add('animating');
-            chatScreen.classList.add('open');
             backdrop.classList.add('visible');
-            document.body.style.overflow = 'hidden';
         }
 
         function closeDrawer() {
             isDrawerOpen = false;
             drawer.classList.remove('open');
-            chatScreen.classList.add('animating');
-            chatScreen.classList.remove('open');
             backdrop.classList.remove('visible');
-            document.body.style.overflow = '';
         }
 
         function toggleDrawer() {
@@ -636,30 +610,18 @@
             else openDrawer();
         }
 
-        // Remove animating class after transition
-        chatScreen.addEventListener('transitionend', () => {
-            chatScreen.classList.remove('animating');
-        });
-
-        // ======== TOUCH HANDLING - v7: Force touch with CSS + JS ========
+        // ======== TOUCH HANDLING - v8: CSS-only transitions, no inline styles ========
         
-        let tStartX = 0, tStartY = 0, tDragging = false, tCurrentX = 0;
-        
-        function tSetPos(x) {
-            tCurrentX = Math.max(0, Math.min(x, drawerWidth));
-            chatScreen.style.transform = 'translateX(' + tCurrentX + 'px)';
-            drawer.style.transform = 'translateX(' + (tCurrentX - drawerWidth) + 'px)';
-            backdrop.style.opacity = (tCurrentX / drawerWidth) * 0.5;
-            backdrop.style.visibility = tCurrentX > 0 ? 'visible' : 'hidden';
-        }
+        let tStartX = 0, tStartY = 0, tDragging = false;
         
         function tStart(e) {
             if (e.touches.length !== 1) return;
             tStartX = e.touches[0].clientX;
             tStartY = e.touches[0].clientY;
             tDragging = true;
-            chatScreen.classList.remove('animating');
-            chatScreen.style.touchAction = 'none';
+            // Disable transitions for instant drag response
+            drawer.style.transition = 'none';
+            chatScreen.style.transition = 'none';
         }
         
         function tMove(e) {
@@ -667,77 +629,83 @@
             const dx = e.touches[0].clientX - tStartX;
             const dy = e.touches[0].clientY - tStartY;
             
+            // Vertical scroll - cancel drag
             if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 15) {
                 tDragging = false;
-                chatScreen.style.touchAction = 'pan-y';
                 return;
             }
+            
             // Swipe RIGHT to OPEN (like Telegram)
-            if (!isDrawerOpen && dx > 15) {
-                e.preventDefault();
-                tSetPos(dx);
+            if (!isDrawerOpen && dx > 0) {
+                const progress = Math.min(dx / window.innerWidth, 1);
+                drawer.style.transform = 'translateX(' + ((progress * 100) - 100) + '%)';
+                backdrop.style.opacity = progress * 0.5;
+                backdrop.style.visibility = 'visible';
             }
+            
             // Swipe LEFT to CLOSE
-            if (isDrawerOpen && dx < -15) {
-                e.preventDefault();
-                tSetPos(drawerWidth + dx);
+            if (isDrawerOpen && dx < 0) {
+                const progress = Math.max(1 + (dx / window.innerWidth), 0);
+                drawer.style.transform = 'translateX(' + ((progress * 100) - 100) + '%)';
+                backdrop.style.opacity = progress * 0.5;
+                if (progress <= 0) backdrop.style.visibility = 'hidden';
             }
         }
         
         function tEnd() {
             if (!tDragging) return;
             tDragging = false;
-            chatScreen.style.touchAction = 'pan-y';
-            chatScreen.classList.add('animating');
             
-            // If drawer was closed and swipe was insufficient — animate back to 0
-            if (!isDrawerOpen && tCurrentX <= drawerWidth * 0.4) {
-                tSetPos(0);
-                setTimeout(() => {
-                    chatScreen.style.transform = '';
-                    drawer.style.transform = '';
-                    backdrop.style.opacity = '';
-                    backdrop.style.visibility = '';
-                }, 350);
-                return;
+            // Re-enable transitions
+            drawer.style.transition = '';
+            chatScreen.style.transition = '';
+            
+            // Read current position from transform
+            const transform = drawer.style.transform;
+            const match = transform.match(/translateX\(([-\d.]+)%\)/);
+            const currentPercent = match ? parseFloat(match[1]) + 100 : 0;
+            
+            // Snap: open if past 40%, close if under 40%
+            if (currentPercent > 40) {
+                drawer.classList.add('open');
+                backdrop.classList.add('visible');
+                isDrawerOpen = true;
+            } else {
+                drawer.classList.remove('open');
+                backdrop.classList.remove('visible');
+                isDrawerOpen = false;
             }
             
-            // If drawer was open and swipe was insufficient — animate back to full width
-            if (isDrawerOpen && tCurrentX >= drawerWidth * 0.4) {
-                tSetPos(drawerWidth);
-                setTimeout(() => {
-                    chatScreen.style.transform = '';
-                    drawer.style.transform = '';
-                }, 350);
-                return;
-            }
-            
-            if (tCurrentX > drawerWidth * 0.4) openDrawer();
-            else closeDrawer();
+            // Clear inline styles after transition completes
+            setTimeout(() => {
+                drawer.style.transform = '';
+                drawer.style.transition = '';
+                backdrop.style.opacity = '';
+                backdrop.style.visibility = '';
+            }, 400);
         }
         
         function tCancel() {
             if (!tDragging) return;
             tDragging = false;
-            chatScreen.style.touchAction = 'pan-y';
-            chatScreen.classList.add('animating');
+            drawer.style.transition = '';
+            chatScreen.style.transition = '';
             
-            // Always return to original position on cancel
+            // Return to original state
             if (!isDrawerOpen) {
-                tSetPos(0);
-                setTimeout(() => {
-                    chatScreen.style.transform = '';
-                    drawer.style.transform = '';
-                    backdrop.style.opacity = '';
-                    backdrop.style.visibility = '';
-                }, 350);
+                drawer.classList.remove('open');
+                backdrop.classList.remove('visible');
             } else {
-                tSetPos(drawerWidth);
-                setTimeout(() => {
-                    chatScreen.style.transform = '';
-                    drawer.style.transform = '';
-                }, 350);
+                drawer.classList.add('open');
+                backdrop.classList.add('visible');
             }
+            
+            setTimeout(() => {
+                drawer.style.transform = '';
+                drawer.style.transition = '';
+                backdrop.style.opacity = '';
+                backdrop.style.visibility = '';
+            }, 400);
         }
         
         chatScreen.addEventListener('touchstart', tStart, {passive: true});
