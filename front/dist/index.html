@@ -265,42 +265,51 @@
             if (!dragging) return;
             dragging = false;
             
-            // Read current visual position before clearing
+            // Read current visual position
             const currentX = chatScreen.getBoundingClientRect().left;
             const w = window.innerWidth;
+            const targetOpen = currentX > w * 0.3;
             
-            // Velocity check: fast swipe = switch state
-            const VELOCITY_THRESHOLD = 0.5;
-            if (Math.abs(velocity) > VELOCITY_THRESHOLD) {
-                if (velocity > 0 && !drawerOpen) {
-                    chatScreen.style.transform = `translateX(${w}px)`;
-                    drawer.style.transform = 'translateX(0)';
-                    setTimeout(() => { openDrawer(); resetStyles(); }, 50);
-                } else if (velocity < 0 && drawerOpen) {
-                    chatScreen.style.transform = 'translateX(0)';
-                    drawer.style.transform = 'translateX(-100%)';
-                    setTimeout(() => { closeDrawer(); resetStyles(); }, 50);
-                }
-                return;
+            // Velocity override
+            if (Math.abs(velocity) > 0.5) {
+                if (velocity > 0 && !drawerOpen) targetOpen = true;
+                else if (velocity < 0 && drawerOpen) targetOpen = false;
             }
             
-            // Position check - animate from current position
-            if (currentX > w * 0.3) {
+            // Set target position inline (for animation from current)
+            if (targetOpen) {
                 chatScreen.style.transform = `translateX(${w}px)`;
                 drawer.style.transform = 'translateX(0)';
-                setTimeout(() => { openDrawer(); resetStyles(); }, 50);
             } else {
                 chatScreen.style.transform = 'translateX(0)';
                 drawer.style.transform = 'translateX(-100%)';
-                setTimeout(() => { closeDrawer(); resetStyles(); }, 50);
             }
-        }
-        
-        function resetStyles() {
-            chatScreen.style.transition = '';
-            chatScreen.style.transform = '';
-            drawer.style.transition = '';
+            
+            // Force reflow
+            void chatScreen.offsetHeight;
+            
+            // Now enable transitions and clear inline styles
+            drawer.style.transition = 'transform 0.3s ease';
+            chatScreen.style.transition = 'transform 0.3s ease';
             drawer.style.transform = '';
+            chatScreen.style.transform = '';
+            
+            // Apply final state via class
+            if (targetOpen) {
+                drawer.classList.add('open');
+                chatScreen.classList.add('open');
+                drawerOpen = true;
+            } else {
+                drawer.classList.remove('open');
+                chatScreen.classList.remove('open');
+                drawerOpen = false;
+            }
+            
+            // Clear transitions after animation
+            setTimeout(() => {
+                drawer.style.transition = '';
+                chatScreen.style.transition = '';
+            }, 350);
         }
         
         function onTouchCancel() {
@@ -309,16 +318,37 @@
             
             const w = window.innerWidth;
             const currentX = chatScreen.getBoundingClientRect().left;
+            const targetOpen = currentX > w * 0.5;
             
-            if (currentX > w * 0.5) {
+            if (targetOpen) {
                 chatScreen.style.transform = `translateX(${w}px)`;
                 drawer.style.transform = 'translateX(0)';
-                setTimeout(() => { openDrawer(); resetStyles(); }, 50);
             } else {
                 chatScreen.style.transform = 'translateX(0)';
                 drawer.style.transform = 'translateX(-100%)';
-                setTimeout(() => { closeDrawer(); resetStyles(); }, 50);
             }
+            
+            void chatScreen.offsetHeight;
+            
+            drawer.style.transition = 'transform 0.3s ease';
+            chatScreen.style.transition = 'transform 0.3s ease';
+            drawer.style.transform = '';
+            chatScreen.style.transform = '';
+            
+            if (targetOpen) {
+                drawer.classList.add('open');
+                chatScreen.classList.add('open');
+                drawerOpen = true;
+            } else {
+                drawer.classList.remove('open');
+                chatScreen.classList.remove('open');
+                drawerOpen = false;
+            }
+            
+            setTimeout(() => {
+                drawer.style.transition = '';
+                chatScreen.style.transition = '';
+            }, 350);
         }
         
         // Attach to both elements
