@@ -13,7 +13,6 @@
             background: #0d0d0d; color: #fff;
         }
         
-        /* ===== APP ===== */
         .app {
             width: 100%; height: 100%;
             position: relative; overflow: hidden;
@@ -22,10 +21,17 @@
         /* ===== DRAWER ===== */
         .drawer {
             position: fixed; top: 0; left: 0;
-            width: 85%; height: 100%;
+            width: 100%; height: 100%;
             background: #1a1a1a;
             z-index: 100;
             overflow-y: auto;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            will-change: transform;
+        }
+        
+        .drawer.open {
+            transform: translateX(0);
         }
         
         .drawer-header {
@@ -64,10 +70,13 @@
             background: #0d0d0d;
             z-index: 200;
             display: flex; flex-direction: column;
+            transform: translateX(0);
             transition: transform 0.3s ease;
             will-change: transform;
         }
-        .chat-screen.open { transform: translateX(85%); }
+        .chat-screen.open {
+            transform: translateX(100%);
+        }
         
         /* Messages */
         .messages {
@@ -105,20 +114,11 @@
             background: #10a37f; border: none; color: #fff;
             font-size: 18px; display: flex; align-items: center; justify-content: center;
         }
-        
-        /* Backdrop */
-        .backdrop {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5); z-index: 150;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        .backdrop.visible { opacity: 1; pointer-events: auto; }
     </style>
 </head>
 <body>
     <div class="app">
-        <!-- Drawer (behind chat) -->
+        <!-- Drawer -->
         <div class="drawer" id="drawer">
             <div class="drawer-header">
                 <div class="drawer-title">Chats</div>
@@ -127,10 +127,7 @@
             <div id="chatList"></div>
         </div>
         
-        <!-- Backdrop -->
-        <div class="backdrop" id="backdrop" onclick="closeDrawer()"></div>
-        
-        <!-- Chat (slides over drawer) -->
+        <!-- Chat -->
         <div class="chat-screen" id="chatScreen">
             <div class="messages" id="messages"></div>
             <div class="input-area">
@@ -151,9 +148,8 @@
         let current = 0;
         let drawerOpen = false;
         
-        // ===== DRAWER =====
+        // ===== ELEMENTS =====
         const drawer = document.getElementById('drawer');
-        const backdrop = document.getElementById('backdrop');
         const chatScreen = document.getElementById('chatScreen');
         
         function renderChatList() {
@@ -170,75 +166,86 @@
         
         function openDrawer() {
             drawerOpen = true;
+            drawer.classList.add('open');
             chatScreen.classList.add('open');
-            backdrop.classList.add('visible');
         }
         
         function closeDrawer() {
             drawerOpen = false;
+            drawer.classList.remove('open');
             chatScreen.classList.remove('open');
-            backdrop.classList.remove('visible');
         }
         
-        // ===== TOUCH =====
+        // ===== TOUCH - works on both chat and drawer =====
         let sx = 0, sy = 0, dragging = false;
         
-        chatScreen.addEventListener('touchstart', e => {
+        function onTouchStart(e) {
             if (e.touches.length !== 1) return;
             sx = e.touches[0].clientX;
             sy = e.touches[0].clientY;
             dragging = true;
-        }, {passive: true});
+        }
         
-        chatScreen.addEventListener('touchmove', e => {
+        function onTouchMove(e) {
             if (!dragging || e.touches.length !== 1) return;
             const dx = e.touches[0].clientX - sx;
             const dy = e.touches[0].clientY - sy;
             
-            // Cancel if vertical
             if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
                 dragging = false;
                 return;
             }
             
-            // Right swipe opens (moves chat right)
+            const w = window.innerWidth;
+            
+            // Swipe RIGHT: drawer comes from left, chat goes right
             if (!drawerOpen && dx > 0) {
-                const pct = Math.min(dx / (window.innerWidth * 0.85), 1);
+                const p = Math.min(dx / w, 1);
+                drawer.style.transition = 'none';
                 chatScreen.style.transition = 'none';
-                chatScreen.style.transform = `translateX(${pct * 85}%)`;
-                backdrop.style.opacity = pct * 0.5;
+                drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
+                chatScreen.style.transform = `translateX(${p * 100}%)`;
             }
-            // Left swipe closes (moves chat left)
+            
+            // Swipe LEFT: drawer goes back left, chat comes back
             if (drawerOpen && dx < 0) {
-                const pct = Math.max(1 + dx / (window.innerWidth * 0.85), 0);
+                const p = Math.max(1 + dx / w, 0);
+                drawer.style.transition = 'none';
                 chatScreen.style.transition = 'none';
-                chatScreen.style.transform = `translateX(${pct * 85}%)`;
-                backdrop.style.opacity = pct * 0.5;
+                drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
+                chatScreen.style.transform = `translateX(${p * 100}%)`;
             }
-        }, {passive: true});
+        }
         
-        function endDrag() {
+        function onTouchEnd() {
             if (!dragging) return;
             dragging = false;
             
-            // Reset inline styles, let CSS class handle it
+            // Reset inline styles
+            drawer.style.transition = '';
+            drawer.style.transform = '';
             chatScreen.style.transition = '';
             chatScreen.style.transform = '';
-            backdrop.style.opacity = '';
             
-            // Read current visual position
+            // Snap based on position
             const rect = chatScreen.getBoundingClientRect();
-            const threshold = window.innerWidth * 0.85 * 0.4;
-            
-            if (rect.left > threshold) {
+            if (rect.left > window.innerWidth * 0.3) {
                 openDrawer();
             } else {
                 closeDrawer();
             }
         }
         
-        chatScreen.addEventListener('touchend', endDrag, {passive: true});
-        chatScreen.addEventListener('touchcancel', endDrag, {passive: true});
+        // Attach to both elements
+        chatScreen.addEventListener('touchstart', onTouchStart, {passive: true});
+        chatScreen.addEventListener('touchmove', onTouchMove, {passive: true});
+        chatScreen.addEventListener('touchend', onTouchEnd, {passive: true});
+        chatScreen.addEventListener('touchcancel', onTouchEnd, {passive: true});
+        
+        drawer.addEventListener('touchstart', onTouchStart, {passive: true});
+        drawer.addEventListener('touchmove', onTouchMove, {passive: true});
+        drawer.addEventListener('touchend', onTouchEnd, {passive: true});
+        drawer.addEventListener('touchcancel', onTouchEnd, {passive: true});
         
         // ===== CHAT =====
         function selectChat(i) {
