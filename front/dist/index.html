@@ -197,29 +197,15 @@
         
         function onTouchStart(e) {
             if (e.touches.length !== 1) return;
-            const touchX = e.touches[0].clientX;
-            const touchY = e.touches[0].clientY;
-            
-            // Capture current visual position and stop CSS transition
-            const rect = chatScreen.getBoundingClientRect();
-            const currentVisualX = rect.left;
-            const w = window.innerWidth;
-            const currentPercent = (currentVisualX / w) * 100;
-            
-            // Freeze at current position — stop any running CSS animation
-            drawer.style.transition = 'none';
-            chatScreen.style.transition = 'none';
-            drawer.style.transform = `translateX(${currentPercent - 100}%)`;
-            chatScreen.style.transform = `translateX(${currentPercent}%)`;
-            void chatScreen.offsetHeight;
-            
-            // Start drag from current position
-            sx = touchX;
-            sy = touchY;
-            lastX = touchX;
+            sx = e.touches[0].clientX;
+            sy = e.touches[0].clientY;
+            lastX = sx;
             lastTime = Date.now();
             velocity = 0;
             dragging = true;
+            // Disable transitions for instant drag response
+            drawer.style.transition = 'none';
+            chatScreen.style.transition = 'none';
         }
         
         function onTouchMove(e) {
@@ -254,18 +240,6 @@
             // Swipe LEFT: drawer goes back left, chat comes back
             if (drawerOpen && dx < 0) {
                 const p = Math.max(1 + dx / w, 0);
-                drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
-                chatScreen.style.transform = `translateX(${p * 100}%)`;
-            }
-            
-            // During animation interruption: apply dx to current frozen position
-            if (drawerOpen && dx > 0) {
-                const p = Math.min(1 + dx / w, 1);
-                drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
-                chatScreen.style.transform = `translateX(${p * 100}%)`;
-            }
-            if (!drawerOpen && dx < 0) {
-                const p = Math.max(dx / w, -1);
                 drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
                 chatScreen.style.transform = `translateX(${p * 100}%)`;
             }
