@@ -26,19 +26,12 @@
             z-index: 100;
             overflow-y: auto;
             transform: translateX(-100%);
+            transition: none;
             will-change: transform;
-        }
-        
-        .drawer.animating {
-            transition: transform 0.3s ease;
         }
         
         .drawer.open {
             transform: translateX(0);
-        }
-        
-        .drawer.open.animating {
-            transition: transform 0.3s ease;
         }
         
         .drawer-header {
@@ -78,19 +71,12 @@
             z-index: 200;
             display: flex; flex-direction: column;
             transform: translateX(0);
+            transition: none;
             will-change: transform;
-        }
-        
-        .chat-screen.animating {
-            transition: transform 0.3s ease;
         }
         
         .chat-screen.open {
             transform: translateX(100%);
-        }
-        
-        .chat-screen.open.animating {
-            transition: transform 0.3s ease;
         }
         
         /* Messages */
@@ -179,23 +165,18 @@
             `).join('');
         }
         
-        let animationsEnabled = false;
-        
-        function enableAnimations() {
-            if (animationsEnabled) return;
-            animationsEnabled = true;
-            drawer.classList.add('animating');
-            chatScreen.classList.add('animating');
-        }
-        
         function openDrawer() {
             drawerOpen = true;
+            drawer.style.transition = 'transform 0.3s ease';
+            chatScreen.style.transition = 'transform 0.3s ease';
             drawer.classList.add('open');
             chatScreen.classList.add('open');
         }
         
         function closeDrawer() {
             drawerOpen = false;
+            drawer.style.transition = 'transform 0.3s ease';
+            chatScreen.style.transition = 'transform 0.3s ease';
             drawer.classList.remove('open');
             chatScreen.classList.remove('open');
         }
@@ -206,7 +187,6 @@
         
         function onTouchStart(e) {
             if (e.touches.length !== 1) return;
-            enableAnimations();
             sx = e.touches[0].clientX;
             sy = e.touches[0].clientY;
             lastX = sx;
@@ -271,28 +251,20 @@
                 else if (velocity < 0 && drawerOpen) targetOpen = false;
             }
             
-            // Enable transitions FIRST
-            drawer.style.transition = 'transform 0.3s ease';
-            chatScreen.style.transition = 'transform 0.3s ease';
-            
-            // Apply class — this triggers the animation from current position
+            // Apply final state
             if (targetOpen) {
+                drawer.style.transition = 'transform 0.3s ease';
+                chatScreen.style.transition = 'transform 0.3s ease';
                 drawer.classList.add('open');
                 chatScreen.classList.add('open');
                 drawerOpen = true;
             } else {
+                drawer.style.transition = 'transform 0.3s ease';
+                chatScreen.style.transition = 'transform 0.3s ease';
                 drawer.classList.remove('open');
                 chatScreen.classList.remove('open');
                 drawerOpen = false;
             }
-            
-            // Clear inline styles and transitions after animation
-            setTimeout(() => {
-                drawer.style.transition = '';
-                drawer.style.transform = '';
-                chatScreen.style.transition = '';
-                chatScreen.style.transform = '';
-            }, 350);
         }
         
         function onTouchCancel() {
@@ -303,25 +275,19 @@
             const currentX = chatScreen.getBoundingClientRect().left;
             const targetOpen = currentX > w * 0.5;
             
-            drawer.style.transition = 'transform 0.3s ease';
-            chatScreen.style.transition = 'transform 0.3s ease';
-            
             if (targetOpen) {
+                drawer.style.transition = 'transform 0.3s ease';
+                chatScreen.style.transition = 'transform 0.3s ease';
                 drawer.classList.add('open');
                 chatScreen.classList.add('open');
                 drawerOpen = true;
             } else {
+                drawer.style.transition = 'transform 0.3s ease';
+                chatScreen.style.transition = 'transform 0.3s ease';
                 drawer.classList.remove('open');
                 chatScreen.classList.remove('open');
                 drawerOpen = false;
             }
-            
-            setTimeout(() => {
-                drawer.style.transition = '';
-                drawer.style.transform = '';
-                chatScreen.style.transition = '';
-                chatScreen.style.transform = '';
-            }, 350);
         }
         
         // Attach to both elements
