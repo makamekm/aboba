@@ -318,7 +318,7 @@
                 targetOpen = velocity > 0;
             }
             
-            animateTo(targetOpen ? 100 : 0, 80);
+            animateTo(targetOpen ? 100 : 0, 120);
         }
         
         function onTouchCancel() {
@@ -329,7 +329,7 @@
             const w = window.innerWidth;
             const targetOpen = currentX > w * 0.5;
             
-            animateTo(targetOpen ? 100 : 0, 80);
+            animateTo(targetOpen ? 100 : 0, 120);
         }
         
         // Attach to both elements
