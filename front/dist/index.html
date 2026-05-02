@@ -689,6 +689,29 @@
             tDragging = false;
             chatScreen.style.touchAction = 'pan-y';
             chatScreen.classList.add('animating');
+            
+            // If drawer was closed and swipe was insufficient — animate back to 0
+            if (!isDrawerOpen && tCurrentX <= drawerWidth * 0.4) {
+                tSetPos(0);
+                setTimeout(() => {
+                    chatScreen.style.transform = '';
+                    drawer.style.transform = '';
+                    backdrop.style.opacity = '';
+                    backdrop.style.visibility = '';
+                }, 350);
+                return;
+            }
+            
+            // If drawer was open and swipe was insufficient — animate back to full width
+            if (isDrawerOpen && tCurrentX >= drawerWidth * 0.4) {
+                tSetPos(drawerWidth);
+                setTimeout(() => {
+                    chatScreen.style.transform = '';
+                    drawer.style.transform = '';
+                }, 350);
+                return;
+            }
+            
             if (tCurrentX > drawerWidth * 0.4) openDrawer();
             else closeDrawer();
         }
