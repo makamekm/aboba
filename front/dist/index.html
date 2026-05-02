@@ -268,7 +268,7 @@
             // Read current visual position
             const currentX = chatScreen.getBoundingClientRect().left;
             const w = window.innerWidth;
-            const targetOpen = currentX > w * 0.3;
+            let targetOpen = currentX > w * 0.3;
             
             // Velocity override
             if (Math.abs(velocity) > 0.5) {
@@ -276,25 +276,11 @@
                 else if (velocity < 0 && drawerOpen) targetOpen = false;
             }
             
-            // Set target position inline (for animation from current)
-            if (targetOpen) {
-                chatScreen.style.transform = `translateX(${w}px)`;
-                drawer.style.transform = 'translateX(0)';
-            } else {
-                chatScreen.style.transform = 'translateX(0)';
-                drawer.style.transform = 'translateX(-100%)';
-            }
-            
-            // Force reflow
-            void chatScreen.offsetHeight;
-            
-            // Now enable transitions and clear inline styles
+            // Enable transitions FIRST
             drawer.style.transition = 'transform 0.3s ease';
             chatScreen.style.transition = 'transform 0.3s ease';
-            drawer.style.transform = '';
-            chatScreen.style.transform = '';
             
-            // Apply final state via class
+            // Apply class — this triggers the animation from current position
             if (targetOpen) {
                 drawer.classList.add('open');
                 chatScreen.classList.add('open');
@@ -305,10 +291,12 @@
                 drawerOpen = false;
             }
             
-            // Clear transitions after animation
+            // Clear inline styles and transitions after animation
             setTimeout(() => {
                 drawer.style.transition = '';
+                drawer.style.transform = '';
                 chatScreen.style.transition = '';
+                chatScreen.style.transform = '';
             }, 350);
         }
         
@@ -320,20 +308,8 @@
             const currentX = chatScreen.getBoundingClientRect().left;
             const targetOpen = currentX > w * 0.5;
             
-            if (targetOpen) {
-                chatScreen.style.transform = `translateX(${w}px)`;
-                drawer.style.transform = 'translateX(0)';
-            } else {
-                chatScreen.style.transform = 'translateX(0)';
-                drawer.style.transform = 'translateX(-100%)';
-            }
-            
-            void chatScreen.offsetHeight;
-            
             drawer.style.transition = 'transform 0.3s ease';
             chatScreen.style.transition = 'transform 0.3s ease';
-            drawer.style.transform = '';
-            chatScreen.style.transform = '';
             
             if (targetOpen) {
                 drawer.classList.add('open');
@@ -347,7 +323,9 @@
             
             setTimeout(() => {
                 drawer.style.transition = '';
+                drawer.style.transform = '';
                 chatScreen.style.transition = '';
+                chatScreen.style.transform = '';
             }, 350);
         }
         
