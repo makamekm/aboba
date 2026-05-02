@@ -171,24 +171,58 @@
             `).join('');
         }
         
+        // ===== JS ANIMATION =====
+        let animFrame = null;
+        
+        function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+        
+        function animateTo(targetPercent, duration = 300) {
+            if (animFrame) cancelAnimationFrame(animFrame);
+            
+            const startPercent = (chatScreen.getBoundingClientRect().left / window.innerWidth) * 100;
+            const startTime = performance.now();
+            
+            function step(now) {
+                const elapsed = now - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const eased = easeOutCubic(t);
+                const current = startPercent + (targetPercent - startPercent) * eased;
+                
+                drawer.style.transform = `translateX(${current - 100}%)`;
+                chatScreen.style.transform = `translateX(${current}%)`;
+                
+                if (t < 1) {
+                    animFrame = requestAnimationFrame(step);
+                } else {
+                    // Done — sync classes
+                    const isOpen = targetPercent >= 50;
+                    drawerOpen = isOpen;
+                    if (isOpen) {
+                        drawer.classList.remove('closed'); drawer.classList.add('open');
+                        chatScreen.classList.remove('closed'); chatScreen.classList.add('open');
+                    } else {
+                        drawer.classList.remove('open'); drawer.classList.add('closed');
+                        chatScreen.classList.remove('open'); chatScreen.classList.add('closed');
+                    }
+                    drawer.style.transform = '';
+                    chatScreen.style.transform = '';
+                    animFrame = null;
+                }
+            }
+            
+            animFrame = requestAnimationFrame(step);
+        }
+        
         function openDrawer() {
             drawerOpen = true;
-            drawer.classList.remove('closed');
-            drawer.classList.add('open');
-            drawer.style.transition = 'transform 0.3s ease';
-            chatScreen.classList.remove('closed');
-            chatScreen.classList.add('open');
-            chatScreen.style.transition = 'transform 0.3s ease';
+            drawer.classList.remove('closed'); drawer.classList.add('open');
+            chatScreen.classList.remove('closed'); chatScreen.classList.add('open');
         }
         
         function closeDrawer() {
             drawerOpen = false;
-            drawer.classList.remove('open');
-            drawer.classList.add('closed');
-            drawer.style.transition = 'transform 0.3s ease';
-            chatScreen.classList.remove('open');
-            chatScreen.classList.add('closed');
-            chatScreen.style.transition = 'transform 0.3s ease';
+            drawer.classList.remove('open'); drawer.classList.add('closed');
+            chatScreen.classList.remove('open'); chatScreen.classList.add('closed');
         }
         
         // ===== TOUCH =====
@@ -200,16 +234,22 @@
             const touchX = e.touches[0].clientX;
             const touchY = e.touches[0].clientY;
             
-            // Get current visual position (even during CSS animation)
+            // Cancel any running JS animation
+            if (animFrame) {
+                cancelAnimationFrame(animFrame);
+                animFrame = null;
+            }
+            
+            // Get current visual position
             const rect = chatScreen.getBoundingClientRect();
             const currentX = rect.left;
             const w = window.innerWidth;
             
-            // Don't stop CSS transition — let it continue
-            // Just capture current visual position for sx calculation
-            // touchmove will override transform inline, transition applies to new value
+            // Freeze at current position
+            drawer.style.transform = `translateX(${currentX - w}px)`;
+            chatScreen.style.transform = `translateX(${currentX}px)`;
             
-            // sx = where we are now, so dx=0 means no movement yet
+            // sx = touchX - currentX, so dx=0 means no movement
             sx = touchX - currentX;
             sy = touchY;
             lastX = touchX;
@@ -240,8 +280,7 @@
             
             const w = window.innerWidth;
             
-            // dx is already offset by current position (sx = touchX - currentX)
-            // So dx=0 means at current position, dx>0 means moving right
+            // dx is offset by current position (sx = touchX - currentX)
             let p = dx / w;
             p = Math.max(0, Math.min(1, p));
             
@@ -253,89 +292,27 @@
             if (!dragging) return;
             dragging = false;
             
-            // Read current visual position
             const currentX = chatScreen.getBoundingClientRect().left;
             const w = window.innerWidth;
             let targetOpen = currentX > w * 0.3;
             
             // Velocity override
             if (Math.abs(velocity) > 0.5) {
-                if (velocity > 0 && !drawerOpen) targetOpen = true;
-                else if (velocity < 0 && drawerOpen) targetOpen = false;
+                targetOpen = velocity > 0;
             }
             
-            // Animate using inline styles only
-            drawer.style.transition = 'transform 0.3s ease';
-            chatScreen.style.transition = 'transform 0.3s ease';
-            
-            if (targetOpen) {
-                drawer.style.transform = 'translateX(0)';
-                chatScreen.style.transform = 'translateX(100%)';
-                drawerOpen = true;
-            } else {
-                drawer.style.transform = 'translateX(-100%)';
-                chatScreen.style.transform = 'translateX(0)';
-                drawerOpen = false;
-            }
-            
-            // After animation, sync classes and clear inline
-            setTimeout(() => {
-                if (targetOpen) {
-                    drawer.classList.remove('closed');
-                    drawer.classList.add('open');
-                    chatScreen.classList.remove('closed');
-                    chatScreen.classList.add('open');
-                } else {
-                    drawer.classList.remove('open');
-                    drawer.classList.add('closed');
-                    chatScreen.classList.remove('open');
-                    chatScreen.classList.add('closed');
-                }
-                drawer.style.transition = '';
-                drawer.style.transform = '';
-                chatScreen.style.transition = '';
-                chatScreen.style.transform = '';
-            }, 350);
+            animateTo(targetOpen ? 100 : 0, 300);
         }
         
         function onTouchCancel() {
             if (!dragging) return;
             dragging = false;
             
-            const w = window.innerWidth;
             const currentX = chatScreen.getBoundingClientRect().left;
+            const w = window.innerWidth;
             const targetOpen = currentX > w * 0.5;
             
-            drawer.style.transition = 'transform 0.3s ease';
-            chatScreen.style.transition = 'transform 0.3s ease';
-            
-            if (targetOpen) {
-                drawer.style.transform = 'translateX(0)';
-                chatScreen.style.transform = 'translateX(100%)';
-                drawerOpen = true;
-            } else {
-                drawer.style.transform = 'translateX(-100%)';
-                chatScreen.style.transform = 'translateX(0)';
-                drawerOpen = false;
-            }
-            
-            setTimeout(() => {
-                if (targetOpen) {
-                    drawer.classList.remove('closed');
-                    drawer.classList.add('open');
-                    chatScreen.classList.remove('closed');
-                    chatScreen.classList.add('open');
-                } else {
-                    drawer.classList.remove('open');
-                    drawer.classList.add('closed');
-                    chatScreen.classList.remove('open');
-                    chatScreen.classList.add('closed');
-                }
-                drawer.style.transition = '';
-                drawer.style.transform = '';
-                chatScreen.style.transition = '';
-                chatScreen.style.transform = '';
-            }, 350);
+            animateTo(targetOpen ? 100 : 0, 300);
         }
         
         // Attach to both elements
