@@ -22,11 +22,14 @@
             width: 100%; height: 100%; overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg); color: var(--text);
+            position: fixed; top: 0; left: 0;
         }
         
         .app {
-            width: 100%; height: 100%;
-            position: relative; overflow: hidden;
+            width: 100%;
+            position: fixed; top: 0; left: 0;
+            overflow: hidden;
+            background: var(--bg);
         }
         
         /* ===== DRAWER ===== */
@@ -387,6 +390,23 @@
             const m = document.getElementById('messages');
             m.scrollTop = m.scrollHeight;
         }
+        
+        // ===== VIEWPORT =====
+        function updateViewport() {
+            const vv = window.visualViewport;
+            const h = vv ? vv.height : window.innerHeight;
+            const w = vv ? vv.width : window.innerWidth;
+            const app = document.querySelector('.app');
+            app.style.height = h + 'px';
+            app.style.width = w + 'px';
+        }
+        
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateViewport);
+            window.visualViewport.addEventListener('scroll', updateViewport);
+        }
+        window.addEventListener('resize', updateViewport);
+        updateViewport();
         
         // ===== INIT =====
         renderChatList();
