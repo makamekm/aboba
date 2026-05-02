@@ -260,26 +260,38 @@
                 else if (velocity < 0 && drawerOpen) targetOpen = false;
             }
             
-            // Keep current inline position, enable transition, then apply class in next frame
+            // Animate using inline styles only
             drawer.style.transition = 'transform 0.3s ease';
             chatScreen.style.transition = 'transform 0.3s ease';
             
-            requestAnimationFrame(() => {
-                // Apply final state — browser will animate from current inline position
+            if (targetOpen) {
+                drawer.style.transform = 'translateX(0)';
+                chatScreen.style.transform = 'translateX(100%)';
+                drawerOpen = true;
+            } else {
+                drawer.style.transform = 'translateX(-100%)';
+                chatScreen.style.transform = 'translateX(0)';
+                drawerOpen = false;
+            }
+            
+            // After animation, sync classes and clear inline
+            setTimeout(() => {
                 if (targetOpen) {
                     drawer.classList.remove('closed');
                     drawer.classList.add('open');
                     chatScreen.classList.remove('closed');
                     chatScreen.classList.add('open');
-                    drawerOpen = true;
                 } else {
                     drawer.classList.remove('open');
                     drawer.classList.add('closed');
                     chatScreen.classList.remove('open');
                     chatScreen.classList.add('closed');
-                    drawerOpen = false;
                 }
-            });
+                drawer.style.transition = '';
+                drawer.style.transform = '';
+                chatScreen.style.transition = '';
+                chatScreen.style.transform = '';
+            }, 350);
         }
         
         function onTouchCancel() {
@@ -290,35 +302,36 @@
             const currentX = chatScreen.getBoundingClientRect().left;
             const targetOpen = currentX > w * 0.5;
             
-            // Set target position inline
+            drawer.style.transition = 'transform 0.3s ease';
+            chatScreen.style.transition = 'transform 0.3s ease';
+            
             if (targetOpen) {
                 drawer.style.transform = 'translateX(0)';
                 chatScreen.style.transform = 'translateX(100%)';
+                drawerOpen = true;
             } else {
                 drawer.style.transform = 'translateX(-100%)';
                 chatScreen.style.transform = 'translateX(0)';
-            }
-            
-            void drawer.offsetHeight;
-            
-            drawer.style.transition = 'transform 0.3s ease';
-            chatScreen.style.transition = 'transform 0.3s ease';
-            drawer.style.transform = '';
-            chatScreen.style.transform = '';
-            
-            if (targetOpen) {
-                drawer.classList.remove('closed');
-                drawer.classList.add('open');
-                chatScreen.classList.remove('closed');
-                chatScreen.classList.add('open');
-                drawerOpen = true;
-            } else {
-                drawer.classList.remove('open');
-                drawer.classList.add('closed');
-                chatScreen.classList.remove('open');
-                chatScreen.classList.add('closed');
                 drawerOpen = false;
             }
+            
+            setTimeout(() => {
+                if (targetOpen) {
+                    drawer.classList.remove('closed');
+                    drawer.classList.add('open');
+                    chatScreen.classList.remove('closed');
+                    chatScreen.classList.add('open');
+                } else {
+                    drawer.classList.remove('open');
+                    drawer.classList.add('closed');
+                    chatScreen.classList.remove('open');
+                    chatScreen.classList.add('closed');
+                }
+                drawer.style.transition = '';
+                drawer.style.transform = '';
+                chatScreen.style.transition = '';
+                chatScreen.style.transform = '';
+            }, 350);
         }
         
         // Attach to both elements
