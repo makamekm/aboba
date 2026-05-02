@@ -641,72 +641,65 @@
             chatScreen.classList.remove('animating');
         });
 
-        // ======== TOUCH HANDLING - v5: Ultra simple ========
+        // ======== TOUCH HANDLING - v6: Pointer Events ========
         
-        let startX = 0;
-        let startY = 0;
-        let isDragging = false;
-        let currentX = 0;
+        let ptrStartX = 0;
+        let ptrStartY = 0;
+        let ptrIsDragging = false;
+        let ptrCurrentX = 0;
         
-        // Helper: set positions during drag
-        function setDragPos(x) {
-            currentX = Math.max(0, Math.min(x, drawerWidth));
-            chatScreen.style.transform = 'translateX(' + currentX + 'px)';
-            drawer.style.transform = 'translateX(' + (currentX - drawerWidth) + 'px)';
-            backdrop.style.opacity = (currentX / drawerWidth) * 0.5;
-            backdrop.style.visibility = currentX > 0 ? 'visible' : 'hidden';
+        function ptrSetPos(x) {
+            ptrCurrentX = Math.max(0, Math.min(x, drawerWidth));
+            chatScreen.style.transform = 'translateX(' + ptrCurrentX + 'px)';
+            drawer.style.transform = 'translateX(' + (ptrCurrentX - drawerWidth) + 'px)';
+            backdrop.style.opacity = (ptrCurrentX / drawerWidth) * 0.5;
+            backdrop.style.visibility = ptrCurrentX > 0 ? 'visible' : 'hidden';
         }
         
-        // Touch START
-        chatScreen.ontouchstart = function(e) {
-            if (e.touches.length !== 1) return;
-            const t = e.touches[0];
-            startX = t.clientX;
-            startY = t.clientY;
-            isDragging = true;
+        chatScreen.onpointerdown = function(e) {
+            ptrStartX = e.clientX;
+            ptrStartY = e.clientY;
+            ptrIsDragging = true;
             chatScreen.classList.remove('animating');
+            chatScreen.setPointerCapture(e.pointerId);
         };
         
-        // Touch MOVE
-        chatScreen.ontouchmove = function(e) {
-            if (!isDragging || e.touches.length !== 1) return;
-            const t = e.touches[0];
-            const dx = t.clientX - startX;
-            const dy = t.clientY - startY;
+        chatScreen.onpointermove = function(e) {
+            if (!ptrIsDragging) return;
+            const dx = e.clientX - ptrStartX;
+            const dy = e.clientY - ptrStartY;
             
-            // Vertical scroll - cancel drag
+            // Vertical scroll - cancel
             if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 15) {
-                isDragging = false;
+                ptrIsDragging = false;
                 return;
             }
             
-            // Swipe LEFT (dx < 0) to OPEN drawer
+            // Swipe LEFT to OPEN
             if (!isDrawerOpen && dx < -15) {
-                setDragPos(-dx);
+                ptrSetPos(-dx);
             }
             
-            // Swipe RIGHT (dx > 0) to CLOSE drawer
+            // Swipe RIGHT to CLOSE
             if (isDrawerOpen && dx > 15) {
-                setDragPos(drawerWidth - dx);
+                ptrSetPos(drawerWidth - dx);
             }
         };
         
-        // Touch END
-        function endDrag() {
-            if (!isDragging) return;
-            isDragging = false;
+        function ptrEnd() {
+            if (!ptrIsDragging) return;
+            ptrIsDragging = false;
             chatScreen.classList.add('animating');
             
-            // Snap: open if > 40% width, close if < 40%
-            if (currentX > drawerWidth * 0.4) {
+            if (ptrCurrentX > drawerWidth * 0.4) {
                 openDrawer();
             } else {
                 closeDrawer();
             }
         }
         
-        chatScreen.ontouchend = endDrag;
-        chatScreen.ontouchcancel = endDrag;
+        chatScreen.onpointerup = ptrEnd;
+        chatScreen.onpointercancel = ptrEnd;
 
         // ======== CHAT FUNCTIONS ========
         function selectChat(index) {
