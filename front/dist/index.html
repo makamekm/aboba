@@ -201,7 +201,7 @@
         }
         
         // ===== TOUCH - works on both chat and drawer =====
-        let sx = 0, sy = 0, dragging = false, hasMoved = false;
+        let sx = 0, sy = 0, dragging = false;
         let lastX = 0, lastTime = 0, velocity = 0;
         
         function onTouchStart(e) {
@@ -213,7 +213,6 @@
             lastTime = Date.now();
             velocity = 0;
             dragging = true;
-            hasMoved = false;
         }
         
         function onTouchMove(e) {
@@ -223,12 +222,8 @@
             const dx = x - sx;
             const dy = y - sy;
             
-            // Dead zone - ignore tiny movements
-            if (!hasMoved && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-            hasMoved = true;
-            
-            // Cancel if vertical
-            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
+            // Cancel if vertical (but only after some movement)
+            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 20) {
                 dragging = false;
                 return;
             }
