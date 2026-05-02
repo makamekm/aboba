@@ -249,7 +249,7 @@
             if (!dragging) return;
             dragging = false;
             
-            // Read current visual position BEFORE clearing
+            // Read current visual position
             const currentX = chatScreen.getBoundingClientRect().left;
             const w = window.innerWidth;
             let targetOpen = currentX > w * 0.3;
@@ -260,40 +260,26 @@
                 else if (velocity < 0 && drawerOpen) targetOpen = false;
             }
             
-            // Set target position inline to animate FROM current position
-            if (targetOpen) {
-                drawer.style.transform = 'translateX(0)';
-                chatScreen.style.transform = 'translateX(100%)';
-            } else {
-                drawer.style.transform = 'translateX(-100%)';
-                chatScreen.style.transform = 'translateX(0)';
-            }
-            
-            // Force reflow so browser registers the starting position
-            void drawer.offsetHeight;
-            
-            // Now enable transition and apply class
+            // Keep current inline position, enable transition, then apply class in next frame
             drawer.style.transition = 'transform 0.3s ease';
             chatScreen.style.transition = 'transform 0.3s ease';
             
-            // Clear inline transform (browser will animate from current to class position)
-            drawer.style.transform = '';
-            chatScreen.style.transform = '';
-            
-            // Apply final state via class
-            if (targetOpen) {
-                drawer.classList.remove('closed');
-                drawer.classList.add('open');
-                chatScreen.classList.remove('closed');
-                chatScreen.classList.add('open');
-                drawerOpen = true;
-            } else {
-                drawer.classList.remove('open');
-                drawer.classList.add('closed');
-                chatScreen.classList.remove('open');
-                chatScreen.classList.add('closed');
-                drawerOpen = false;
-            }
+            requestAnimationFrame(() => {
+                // Apply final state — browser will animate from current inline position
+                if (targetOpen) {
+                    drawer.classList.remove('closed');
+                    drawer.classList.add('open');
+                    chatScreen.classList.remove('closed');
+                    chatScreen.classList.add('open');
+                    drawerOpen = true;
+                } else {
+                    drawer.classList.remove('open');
+                    drawer.classList.add('closed');
+                    chatScreen.classList.remove('open');
+                    chatScreen.classList.add('closed');
+                    drawerOpen = false;
+                }
+            });
         }
         
         function onTouchCancel() {
