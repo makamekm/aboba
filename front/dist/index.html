@@ -197,8 +197,8 @@
             const startTime = performance.now();
             
             // Opening drawer (chat goes right, drawer appears) = easeOut: fast start, slow end
-            // Closing drawer (chat returns, drawer hides) = easeIn: slow start, fast end
-            const easing = targetPercent > startPercent ? easeOutCubic : easeInCubic;
+            // Closing drawer (chat returns, drawer hides) = linear: constant speed
+            const easing = targetPercent > startPercent ? easeOutCubic : (t => t);
             
             function step(now) {
                 const elapsed = now - startTime;
