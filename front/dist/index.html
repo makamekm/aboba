@@ -265,45 +265,59 @@
             if (!dragging) return;
             dragging = false;
             
-            // Reset inline styles
-            drawer.style.transition = '';
-            drawer.style.transform = '';
-            chatScreen.style.transition = '';
-            chatScreen.style.transform = '';
+            // Read current visual position before clearing
+            const currentX = chatScreen.getBoundingClientRect().left;
+            const w = window.innerWidth;
             
             // Velocity check: fast swipe = switch state
-            const VELOCITY_THRESHOLD = 0.5; // px/ms
+            const VELOCITY_THRESHOLD = 0.5;
             if (Math.abs(velocity) > VELOCITY_THRESHOLD) {
-                if (velocity > 0 && !drawerOpen) openDrawer();
-                else if (velocity < 0 && drawerOpen) closeDrawer();
+                if (velocity > 0 && !drawerOpen) {
+                    chatScreen.style.transform = `translateX(${w}px)`;
+                    drawer.style.transform = 'translateX(0)';
+                    setTimeout(() => { openDrawer(); resetStyles(); }, 50);
+                } else if (velocity < 0 && drawerOpen) {
+                    chatScreen.style.transform = 'translateX(0)';
+                    drawer.style.transform = 'translateX(-100%)';
+                    setTimeout(() => { closeDrawer(); resetStyles(); }, 50);
+                }
                 return;
             }
             
-            // Position check
-            const rect = chatScreen.getBoundingClientRect();
-            if (rect.left > window.innerWidth * 0.3) {
-                openDrawer();
+            // Position check - animate from current position
+            if (currentX > w * 0.3) {
+                chatScreen.style.transform = `translateX(${w}px)`;
+                drawer.style.transform = 'translateX(0)';
+                setTimeout(() => { openDrawer(); resetStyles(); }, 50);
             } else {
-                closeDrawer();
+                chatScreen.style.transform = 'translateX(0)';
+                drawer.style.transform = 'translateX(-100%)';
+                setTimeout(() => { closeDrawer(); resetStyles(); }, 50);
             }
+        }
+        
+        function resetStyles() {
+            chatScreen.style.transition = '';
+            chatScreen.style.transform = '';
+            drawer.style.transition = '';
+            drawer.style.transform = '';
         }
         
         function onTouchCancel() {
             if (!dragging) return;
             dragging = false;
             
-            // Force reset inline styles
-            drawer.style.transition = '';
-            drawer.style.transform = '';
-            chatScreen.style.transition = '';
-            chatScreen.style.transform = '';
+            const w = window.innerWidth;
+            const currentX = chatScreen.getBoundingClientRect().left;
             
-            // Return to nearest stable state
-            const rect = chatScreen.getBoundingClientRect();
-            if (rect.left > window.innerWidth * 0.5) {
-                openDrawer();
+            if (currentX > w * 0.5) {
+                chatScreen.style.transform = `translateX(${w}px)`;
+                drawer.style.transform = 'translateX(0)';
+                setTimeout(() => { openDrawer(); resetStyles(); }, 50);
             } else {
-                closeDrawer();
+                chatScreen.style.transform = 'translateX(0)';
+                drawer.style.transform = 'translateX(-100%)';
+                setTimeout(() => { closeDrawer(); resetStyles(); }, 50);
             }
         }
         
