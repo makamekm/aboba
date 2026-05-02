@@ -205,12 +205,9 @@
             const currentX = rect.left;
             const w = window.innerWidth;
             
-            // Stop CSS transition and freeze at current position
-            drawer.style.transition = 'none';
-            chatScreen.style.transition = 'none';
-            drawer.style.transform = `translateX(${currentX - w}px)`;
-            chatScreen.style.transform = `translateX(${currentX}px)`;
-            void chatScreen.offsetHeight;
+            // Don't stop CSS transition — let it continue
+            // Just capture current visual position for sx calculation
+            // touchmove will override transform inline, transition applies to new value
             
             // sx = where we are now, so dx=0 means no movement yet
             sx = touchX - currentX;
