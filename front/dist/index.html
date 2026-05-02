@@ -641,65 +641,61 @@
             chatScreen.classList.remove('animating');
         });
 
-        // ======== TOUCH HANDLING - v6: Pointer Events ========
+        // ======== TOUCH HANDLING - v7: Force touch with CSS + JS ========
         
-        let ptrStartX = 0;
-        let ptrStartY = 0;
-        let ptrIsDragging = false;
-        let ptrCurrentX = 0;
+        let tStartX = 0, tStartY = 0, tDragging = false, tCurrentX = 0;
         
-        function ptrSetPos(x) {
-            ptrCurrentX = Math.max(0, Math.min(x, drawerWidth));
-            chatScreen.style.transform = 'translateX(' + ptrCurrentX + 'px)';
-            drawer.style.transform = 'translateX(' + (ptrCurrentX - drawerWidth) + 'px)';
-            backdrop.style.opacity = (ptrCurrentX / drawerWidth) * 0.5;
-            backdrop.style.visibility = ptrCurrentX > 0 ? 'visible' : 'hidden';
+        function tSetPos(x) {
+            tCurrentX = Math.max(0, Math.min(x, drawerWidth));
+            chatScreen.style.transform = 'translateX(' + tCurrentX + 'px)';
+            drawer.style.transform = 'translateX(' + (tCurrentX - drawerWidth) + 'px)';
+            backdrop.style.opacity = (tCurrentX / drawerWidth) * 0.5;
+            backdrop.style.visibility = tCurrentX > 0 ? 'visible' : 'hidden';
         }
         
-        chatScreen.onpointerdown = function(e) {
-            ptrStartX = e.clientX;
-            ptrStartY = e.clientY;
-            ptrIsDragging = true;
+        function tStart(e) {
+            if (e.touches.length !== 1) return;
+            tStartX = e.touches[0].clientX;
+            tStartY = e.touches[0].clientY;
+            tDragging = true;
             chatScreen.classList.remove('animating');
-            chatScreen.setPointerCapture(e.pointerId);
-        };
+            chatScreen.style.touchAction = 'none';
+        }
         
-        chatScreen.onpointermove = function(e) {
-            if (!ptrIsDragging) return;
-            const dx = e.clientX - ptrStartX;
-            const dy = e.clientY - ptrStartY;
+        function tMove(e) {
+            if (!tDragging || e.touches.length !== 1) return;
+            const dx = e.touches[0].clientX - tStartX;
+            const dy = e.touches[0].clientY - tStartY;
             
-            // Vertical scroll - cancel
             if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 15) {
-                ptrIsDragging = false;
+                tDragging = false;
+                chatScreen.style.touchAction = 'pan-y';
                 return;
             }
             
-            // Swipe LEFT to OPEN
             if (!isDrawerOpen && dx < -15) {
-                ptrSetPos(-dx);
+                e.preventDefault();
+                tSetPos(-dx);
             }
-            
-            // Swipe RIGHT to CLOSE
             if (isDrawerOpen && dx > 15) {
-                ptrSetPos(drawerWidth - dx);
-            }
-        };
-        
-        function ptrEnd() {
-            if (!ptrIsDragging) return;
-            ptrIsDragging = false;
-            chatScreen.classList.add('animating');
-            
-            if (ptrCurrentX > drawerWidth * 0.4) {
-                openDrawer();
-            } else {
-                closeDrawer();
+                e.preventDefault();
+                tSetPos(drawerWidth - dx);
             }
         }
         
-        chatScreen.onpointerup = ptrEnd;
-        chatScreen.onpointercancel = ptrEnd;
+        function tEnd() {
+            if (!tDragging) return;
+            tDragging = false;
+            chatScreen.style.touchAction = 'pan-y';
+            chatScreen.classList.add('animating');
+            if (tCurrentX > drawerWidth * 0.4) openDrawer();
+            else closeDrawer();
+        }
+        
+        chatScreen.addEventListener('touchstart', tStart, {passive: true});
+        chatScreen.addEventListener('touchmove', tMove, {passive: false});
+        chatScreen.addEventListener('touchend', tEnd, {passive: true});
+        chatScreen.addEventListener('touchcancel', tEnd, {passive: true});
 
         // ======== CHAT FUNCTIONS ========
         function selectChat(index) {
