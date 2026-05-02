@@ -29,14 +29,16 @@
             will-change: transform;
         }
         
+        .drawer.animating {
+            transition: transform 0.3s ease;
+        }
+        
         .drawer.open {
             transform: translateX(0);
-            transition: transform 0.3s ease;
         }
         
         .drawer.closed {
             transform: translateX(-100%);
-            transition: transform 0.3s ease;
         }
         
         .drawer-header {
@@ -79,14 +81,16 @@
             will-change: transform;
         }
         
+        .chat-screen.animating {
+            transition: transform 0.3s ease;
+        }
+        
         .chat-screen.open {
             transform: translateX(100%);
-            transition: transform 0.3s ease;
         }
         
         .chat-screen.closed {
             transform: translateX(0);
-            transition: transform 0.3s ease;
         }
         
         /* Messages */
@@ -179,16 +183,20 @@
             drawerOpen = true;
             drawer.classList.remove('closed');
             drawer.classList.add('open');
+            drawer.classList.add('animating');
             chatScreen.classList.remove('closed');
             chatScreen.classList.add('open');
+            chatScreen.classList.add('animating');
         }
         
         function closeDrawer() {
             drawerOpen = false;
             drawer.classList.remove('open');
             drawer.classList.add('closed');
+            drawer.classList.add('animating');
             chatScreen.classList.remove('open');
             chatScreen.classList.add('closed');
+            chatScreen.classList.add('animating');
         }
         
         // ===== TOUCH =====
@@ -203,6 +211,9 @@
             lastTime = Date.now();
             velocity = 0;
             dragging = true;
+            // Remove animating class for instant response during drag
+            drawer.classList.remove('animating');
+            chatScreen.classList.remove('animating');
         }
         
         function onTouchMove(e) {
