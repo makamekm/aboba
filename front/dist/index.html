@@ -185,18 +185,25 @@
         // ===== JS ANIMATION =====
         let animFrame = null;
         
+        // easeOut: fast start, slow end (opening chat — sharp at end)
         function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+        // easeIn: slow start, fast end (opening drawer — smooth at end)
+        function easeInCubic(t) { return t * t * t; }
         
-        function animateTo(targetPercent, duration = 300) {
+        function animateTo(targetPercent, duration = 150) {
             if (animFrame) cancelAnimationFrame(animFrame);
             
             const startPercent = (chatScreen.getBoundingClientRect().left / window.innerWidth) * 100;
             const startTime = performance.now();
             
+            // Opening drawer = going TO drawer (targetPercent = 100) = easeIn (smooth at end)
+            // Opening chat = going TO chat (targetPercent = 0) = easeOut (sharp at end)
+            const easing = targetPercent > startPercent ? easeInCubic : easeOutCubic;
+            
             function step(now) {
                 const elapsed = now - startTime;
                 const t = Math.min(elapsed / duration, 1);
-                const eased = easeOutCubic(t);
+                const eased = easing(t);
                 const current = startPercent + (targetPercent - startPercent) * eased;
                 
                 drawer.style.transform = `translateX(${current - 100}%)`;
@@ -205,7 +212,6 @@
                 if (t < 1) {
                     animFrame = requestAnimationFrame(step);
                 } else {
-                    // Done — sync classes
                     const isOpen = targetPercent >= 50;
                     drawerOpen = isOpen;
                     if (isOpen) {
