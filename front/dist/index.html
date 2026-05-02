@@ -249,11 +249,7 @@
             if (!dragging) return;
             dragging = false;
             
-            // Clear inline styles
-            drawer.style.transform = '';
-            chatScreen.style.transform = '';
-            
-            // Read current visual position
+            // Read current visual position BEFORE clearing
             const currentX = chatScreen.getBoundingClientRect().left;
             const w = window.innerWidth;
             let targetOpen = currentX > w * 0.3;
@@ -264,27 +260,78 @@
                 else if (velocity < 0 && drawerOpen) targetOpen = false;
             }
             
-            // Apply final state
+            // Set target position inline to animate FROM current position
             if (targetOpen) {
-                openDrawer();
+                drawer.style.transform = 'translateX(0)';
+                chatScreen.style.transform = 'translateX(100%)';
             } else {
-                closeDrawer();
+                drawer.style.transform = 'translateX(-100%)';
+                chatScreen.style.transform = 'translateX(0)';
+            }
+            
+            // Force reflow so browser registers the starting position
+            void drawer.offsetHeight;
+            
+            // Now enable transition and apply class
+            drawer.style.transition = 'transform 0.3s ease';
+            chatScreen.style.transition = 'transform 0.3s ease';
+            
+            // Clear inline transform (browser will animate from current to class position)
+            drawer.style.transform = '';
+            chatScreen.style.transform = '';
+            
+            // Apply final state via class
+            if (targetOpen) {
+                drawer.classList.remove('closed');
+                drawer.classList.add('open');
+                chatScreen.classList.remove('closed');
+                chatScreen.classList.add('open');
+                drawerOpen = true;
+            } else {
+                drawer.classList.remove('open');
+                drawer.classList.add('closed');
+                chatScreen.classList.remove('open');
+                chatScreen.classList.add('closed');
+                drawerOpen = false;
             }
         }
         
         function onTouchCancel() {
             if (!dragging) return;
             dragging = false;
-            drawer.style.transform = '';
-            chatScreen.style.transform = '';
             
             const w = window.innerWidth;
             const currentX = chatScreen.getBoundingClientRect().left;
+            const targetOpen = currentX > w * 0.5;
             
-            if (currentX > w * 0.5) {
-                openDrawer();
+            // Set target position inline
+            if (targetOpen) {
+                drawer.style.transform = 'translateX(0)';
+                chatScreen.style.transform = 'translateX(100%)';
             } else {
-                closeDrawer();
+                drawer.style.transform = 'translateX(-100%)';
+                chatScreen.style.transform = 'translateX(0)';
+            }
+            
+            void drawer.offsetHeight;
+            
+            drawer.style.transition = 'transform 0.3s ease';
+            chatScreen.style.transition = 'transform 0.3s ease';
+            drawer.style.transform = '';
+            chatScreen.style.transform = '';
+            
+            if (targetOpen) {
+                drawer.classList.remove('closed');
+                drawer.classList.add('open');
+                chatScreen.classList.remove('closed');
+                chatScreen.classList.add('open');
+                drawerOpen = true;
+            } else {
+                drawer.classList.remove('open');
+                drawer.classList.add('closed');
+                chatScreen.classList.remove('open');
+                chatScreen.classList.add('closed');
+                drawerOpen = false;
             }
         }
         
