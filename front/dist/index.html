@@ -197,15 +197,34 @@
         
         function onTouchStart(e) {
             if (e.touches.length !== 1) return;
-            sx = e.touches[0].clientX;
-            sy = e.touches[0].clientY;
-            lastX = sx;
+            const touchX = e.touches[0].clientX;
+            const touchY = e.touches[0].clientY;
+            
+            // Stop any running CSS animation and capture current visual position
+            const rect = chatScreen.getBoundingClientRect();
+            const currentVisualX = rect.left;
+            const w = window.innerWidth;
+            const currentPercent = (currentVisualX / w) * 100;
+            
+            // Immediately freeze at current visual position
+            drawer.style.transition = 'none';
+            chatScreen.style.transition = 'none';
+            drawer.style.transform = `translateX(${currentPercent - 100}%)`;
+            chatScreen.style.transform = `translateX(${currentPercent}%)`;
+            
+            // Force reflow to ensure styles applied
+            void chatScreen.offsetHeight;
+            
+            // sx = touchX means dx=0 at current position
+            // But we need: when we move to touchX, transform stays at currentPercent
+            // During move: newPercent = currentPercent + ((x - sx) / w) * 100
+            // At x=touchX: newPercent = currentPercent → sx = touchX ✓
+            sx = touchX;
+            sy = touchY;
+            lastX = touchX;
             lastTime = Date.now();
             velocity = 0;
             dragging = true;
-            // Disable transitions for instant drag response
-            drawer.style.transition = 'none';
-            chatScreen.style.transition = 'none';
         }
         
         function onTouchMove(e) {
@@ -230,19 +249,15 @@
             
             const w = window.innerWidth;
             
-            // Swipe RIGHT: drawer comes from left, chat goes right
-            if (!drawerOpen && dx > 0) {
-                const p = Math.min(dx / w, 1);
-                drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
-                chatScreen.style.transform = `translateX(${p * 100}%)`;
-            }
+            // Get current base position from inline transform (set in touchstart)
+            const currentTransform = parseFloat(chatScreen.style.transform.replace('translateX(', '').replace('%)', '')) || 0;
             
-            // Swipe LEFT: drawer goes back left, chat comes back
-            if (drawerOpen && dx < 0) {
-                const p = Math.max(1 + dx / w, 0);
-                drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
-                chatScreen.style.transform = `translateX(${p * 100}%)`;
-            }
+            // Apply delta to current position — works during animation interruption
+            let newPercent = currentTransform + (dx / w) * 100;
+            newPercent = Math.max(0, Math.min(100, newPercent));
+            
+            drawer.style.transform = `translateX(${newPercent - 100}%)`;
+            chatScreen.style.transform = `translateX(${newPercent}%)`;
         }
         
         function onTouchEnd() {
