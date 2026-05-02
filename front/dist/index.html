@@ -672,16 +672,16 @@
                 chatScreen.style.touchAction = 'pan-y';
                 return;
             }
-            
-            if (!isDrawerOpen && dx < -15) {
+            // Swipe RIGHT to OPEN (like Telegram)
+            if (!isDrawerOpen && dx > 15) {
                 e.preventDefault();
-                tSetPos(-dx);
+                tSetPos(dx);
             }
-            if (isDrawerOpen && dx > 15) {
+            // Swipe LEFT to CLOSE
+            if (isDrawerOpen && dx < -15) {
                 e.preventDefault();
-                tSetPos(drawerWidth - dx);
+                tSetPos(drawerWidth + dx);
             }
-        }
         
         function tEnd() {
             if (!tDragging) return;
