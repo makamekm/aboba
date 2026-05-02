@@ -197,15 +197,28 @@
         
         function onTouchStart(e) {
             if (e.touches.length !== 1) return;
-            sx = e.touches[0].clientX;
-            sy = e.touches[0].clientY;
-            lastX = sx;
+            const touchX = e.touches[0].clientX;
+            const touchY = e.touches[0].clientY;
+            
+            // Get current visual position (even during CSS animation)
+            const rect = chatScreen.getBoundingClientRect();
+            const currentX = rect.left;
+            const w = window.innerWidth;
+            
+            // Stop CSS transition and freeze at current position
+            drawer.style.transition = 'none';
+            chatScreen.style.transition = 'none';
+            drawer.style.transform = `translateX(${currentX - w}px)`;
+            chatScreen.style.transform = `translateX(${currentX}px)`;
+            void chatScreen.offsetHeight;
+            
+            // sx = where we are now, so dx=0 means no movement yet
+            sx = touchX - currentX;
+            sy = touchY;
+            lastX = touchX;
             lastTime = Date.now();
             velocity = 0;
             dragging = true;
-            // Disable transitions for instant drag response
-            drawer.style.transition = 'none';
-            chatScreen.style.transition = 'none';
         }
         
         function onTouchMove(e) {
@@ -230,19 +243,13 @@
             
             const w = window.innerWidth;
             
-            // Swipe RIGHT: drawer comes from left, chat goes right
-            if (!drawerOpen && dx > 0) {
-                const p = Math.min(dx / w, 1);
-                drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
-                chatScreen.style.transform = `translateX(${p * 100}%)`;
-            }
+            // dx is already offset by current position (sx = touchX - currentX)
+            // So dx=0 means at current position, dx>0 means moving right
+            let p = dx / w;
+            p = Math.max(0, Math.min(1, p));
             
-            // Swipe LEFT: drawer goes back left, chat comes back
-            if (drawerOpen && dx < 0) {
-                const p = Math.max(1 + dx / w, 0);
-                drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
-                chatScreen.style.transform = `translateX(${p * 100}%)`;
-            }
+            drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
+            chatScreen.style.transform = `translateX(${p * 100}%)`;
         }
         
         function onTouchEnd() {
