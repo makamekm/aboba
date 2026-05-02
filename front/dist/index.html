@@ -40,6 +40,13 @@
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             border-right: 1px solid rgba(255,255,255,0.05);
+            transform: translateX(-100%);
+            transform: translateX(calc(-100% - 1px));
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        
+        .drawer.open {
+            transform: translateX(0);
         }
         
         .drawer-header {
@@ -718,6 +725,7 @@
         // ======== DRAWER OPEN/CLOSE ========
         function openDrawer() {
             isDrawerOpen = true;
+            drawer.classList.add('open');
             chatScreen.classList.add('animating');
             chatScreen.classList.add('open');
             backdrop.classList.add('visible');
@@ -726,6 +734,7 @@
 
         function closeDrawer() {
             isDrawerOpen = false;
+            drawer.classList.remove('open');
             chatScreen.classList.add('animating');
             chatScreen.classList.remove('open');
             backdrop.classList.remove('visible');
@@ -750,6 +759,10 @@
         function setChatPosition(x) {
             const clampedX = Math.max(0, Math.min(x, drawerWidth));
             chatScreen.style.transform = `translateX(${clampedX}px)`;
+            
+            // Also move drawer
+            const drawerX = Math.max(-drawerWidth, Math.min(0, clampedX - drawerWidth));
+            drawer.style.transform = `translateX(${drawerX}px)`;
             
             // Backdrop opacity based on position
             const progress = clampedX / drawerWidth;
@@ -834,26 +847,33 @@
                 // Was trying to open
                 if (shouldOpen) {
                     isDrawerOpen = true;
+                    drawer.classList.add('open');
                     chatScreen.classList.add('open');
                     backdrop.classList.add('visible');
                     document.body.style.overflow = 'hidden';
+                    chatScreen.style.transform = '';
+                    drawer.style.transform = '';
                 } else {
                     chatScreen.classList.remove('open');
                     backdrop.classList.remove('visible');
-                    setChatPosition(0);
+                    chatScreen.style.transform = '';
+                    drawer.style.transform = '';
                 }
             } else {
                 // Was trying to close
                 if (!shouldOpen || velocity > VELOCITY_THRESHOLD) {
                     isDrawerOpen = false;
+                    drawer.classList.remove('open');
                     chatScreen.classList.remove('open');
                     backdrop.classList.remove('visible');
                     document.body.style.overflow = '';
-                    setChatPosition(0);
+                    chatScreen.style.transform = '';
+                    drawer.style.transform = '';
                 } else {
                     chatScreen.classList.add('open');
                     backdrop.classList.add('visible');
-                    setChatPosition(drawerWidth);
+                    chatScreen.style.transform = '';
+                    drawer.style.transform = '';
                 }
             }
         });
