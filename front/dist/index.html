@@ -263,16 +263,40 @@
             }
         }
         
+        function onTouchCancel() {
+            if (!dragging) return;
+            dragging = false;
+            
+            // Force reset inline styles
+            drawer.style.transition = '';
+            drawer.style.transform = '';
+            chatScreen.style.transition = '';
+            chatScreen.style.transform = '';
+            
+            // Return to nearest stable state
+            const rect = chatScreen.getBoundingClientRect();
+            if (rect.left > window.innerWidth * 0.5) {
+                openDrawer();
+            } else {
+                closeDrawer();
+            }
+        }
+        
         // Attach to both elements
         chatScreen.addEventListener('touchstart', onTouchStart, {passive: true});
         chatScreen.addEventListener('touchmove', onTouchMove, {passive: true});
         chatScreen.addEventListener('touchend', onTouchEnd, {passive: true});
-        chatScreen.addEventListener('touchcancel', onTouchEnd, {passive: true});
+        chatScreen.addEventListener('touchcancel', onTouchCancel, {passive: true});
         
         drawer.addEventListener('touchstart', onTouchStart, {passive: true});
         drawer.addEventListener('touchmove', onTouchMove, {passive: true});
         drawer.addEventListener('touchend', onTouchEnd, {passive: true});
-        drawer.addEventListener('touchcancel', onTouchEnd, {passive: true});
+        drawer.addEventListener('touchcancel', onTouchCancel, {passive: true});
+        
+        // Handle tab switch / app background
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) onTouchCancel();
+        });
         
         // ===== CHAT =====
         function selectChat(i) {
