@@ -26,12 +26,17 @@
             z-index: 100;
             overflow-y: auto;
             transform: translateX(-100%);
-            transition: none;
             will-change: transform;
         }
         
         .drawer.open {
             transform: translateX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .drawer.closed {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
         }
         
         .drawer-header {
@@ -71,12 +76,17 @@
             z-index: 200;
             display: flex; flex-direction: column;
             transform: translateX(0);
-            transition: none;
             will-change: transform;
         }
         
         .chat-screen.open {
             transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .chat-screen.closed {
+            transform: translateX(0);
+            transition: transform 0.3s ease;
         }
         
         /* Messages */
@@ -120,7 +130,7 @@
 <body>
     <div class="app">
         <!-- Drawer -->
-        <div class="drawer" id="drawer">
+        <div class="drawer closed" id="drawer">
             <div class="drawer-header">
                 <div class="drawer-title">Chats</div>
                 <button class="drawer-new" onclick="newChat()">+</button>
@@ -129,7 +139,7 @@
         </div>
         
         <!-- Chat -->
-        <div class="chat-screen" id="chatScreen">
+        <div class="chat-screen closed" id="chatScreen">
             <div class="messages" id="messages"></div>
             <div class="input-area">
                 <input type="text" id="msgInput" placeholder="Message..." onkeydown="if(event.key==='Enter')sendMsg()">
@@ -167,21 +177,21 @@
         
         function openDrawer() {
             drawerOpen = true;
-            drawer.style.transition = 'transform 0.3s ease';
-            chatScreen.style.transition = 'transform 0.3s ease';
+            drawer.classList.remove('closed');
             drawer.classList.add('open');
+            chatScreen.classList.remove('closed');
             chatScreen.classList.add('open');
         }
         
         function closeDrawer() {
             drawerOpen = false;
-            drawer.style.transition = 'transform 0.3s ease';
-            chatScreen.style.transition = 'transform 0.3s ease';
             drawer.classList.remove('open');
+            drawer.classList.add('closed');
             chatScreen.classList.remove('open');
+            chatScreen.classList.add('closed');
         }
         
-        // ===== TOUCH - works on both chat and drawer =====
+        // ===== TOUCH =====
         let sx = 0, sy = 0, dragging = false;
         let lastX = 0, lastTime = 0, velocity = 0;
         
@@ -202,7 +212,7 @@
             const dx = x - sx;
             const dy = y - sy;
             
-            // Cancel if vertical (but only after some movement)
+            // Cancel if vertical
             if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 20) {
                 dragging = false;
                 return;
@@ -220,8 +230,6 @@
             // Swipe RIGHT: drawer comes from left, chat goes right
             if (!drawerOpen && dx > 0) {
                 const p = Math.min(dx / w, 1);
-                drawer.style.transition = 'none';
-                chatScreen.style.transition = 'none';
                 drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
                 chatScreen.style.transform = `translateX(${p * 100}%)`;
             }
@@ -229,8 +237,6 @@
             // Swipe LEFT: drawer goes back left, chat comes back
             if (drawerOpen && dx < 0) {
                 const p = Math.max(1 + dx / w, 0);
-                drawer.style.transition = 'none';
-                chatScreen.style.transition = 'none';
                 drawer.style.transform = `translateX(${(p * 100) - 100}%)`;
                 chatScreen.style.transform = `translateX(${p * 100}%)`;
             }
@@ -239,6 +245,10 @@
         function onTouchEnd() {
             if (!dragging) return;
             dragging = false;
+            
+            // Clear inline styles
+            drawer.style.transform = '';
+            chatScreen.style.transform = '';
             
             // Read current visual position
             const currentX = chatScreen.getBoundingClientRect().left;
@@ -253,40 +263,25 @@
             
             // Apply final state
             if (targetOpen) {
-                drawer.style.transition = 'transform 0.3s ease';
-                chatScreen.style.transition = 'transform 0.3s ease';
-                drawer.classList.add('open');
-                chatScreen.classList.add('open');
-                drawerOpen = true;
+                openDrawer();
             } else {
-                drawer.style.transition = 'transform 0.3s ease';
-                chatScreen.style.transition = 'transform 0.3s ease';
-                drawer.classList.remove('open');
-                chatScreen.classList.remove('open');
-                drawerOpen = false;
+                closeDrawer();
             }
         }
         
         function onTouchCancel() {
             if (!dragging) return;
             dragging = false;
+            drawer.style.transform = '';
+            chatScreen.style.transform = '';
             
             const w = window.innerWidth;
             const currentX = chatScreen.getBoundingClientRect().left;
-            const targetOpen = currentX > w * 0.5;
             
-            if (targetOpen) {
-                drawer.style.transition = 'transform 0.3s ease';
-                chatScreen.style.transition = 'transform 0.3s ease';
-                drawer.classList.add('open');
-                chatScreen.classList.add('open');
-                drawerOpen = true;
+            if (currentX > w * 0.5) {
+                openDrawer();
             } else {
-                drawer.style.transition = 'transform 0.3s ease';
-                chatScreen.style.transition = 'transform 0.3s ease';
-                drawer.classList.remove('open');
-                chatScreen.classList.remove('open');
-                drawerOpen = false;
+                closeDrawer();
             }
         }
         
@@ -300,11 +295,6 @@
         drawer.addEventListener('touchmove', onTouchMove, {passive: true});
         drawer.addEventListener('touchend', onTouchEnd, {passive: true});
         drawer.addEventListener('touchcancel', onTouchCancel, {passive: true});
-        
-        // Handle tab switch / app background
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) onTouchCancel();
-        });
         
         // ===== CHAT =====
         function selectChat(i) {
