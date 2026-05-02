@@ -775,8 +775,8 @@
             const touchY = getTouchY(e);
             const screenWidth = window.innerWidth;
             
-            // Edge swipe to OPEN (from right edge, only when drawer closed)
-            if (!isDrawerOpen && touchX > screenWidth - EDGE_THRESHOLD) {
+            // ANY horizontal swipe to OPEN (from anywhere on screen when drawer closed)
+            if (!isDrawerOpen) {
                 isDragging = true;
                 dragStartX = touchX;
                 dragStartY = touchY;
@@ -818,13 +818,24 @@
             const now = Date.now();
             const dt = now - dragLastTime;
             
-            // Check if vertical scroll (cancel drag)
-            const dx = Math.abs(touchX - dragStartX);
-            const dy = Math.abs(touchY - dragStartY);
-            if (dy > dx && dy > 20) {
-                isDragging = false;
-                chatScreen.classList.remove('dragging');
-                return;
+            const dx = touchX - dragStartX;
+            const dy = touchY - dragStartY;
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
+            
+            // First move: determine direction
+            if (dragCurrentX === 0 && !isDrawerOpen) {
+                // For drawer opening: must swipe LEFT (dx < 0)
+                // If swiping RIGHT or mostly vertical, cancel
+                if (dx > 10 || (absDy > absDx && absDy > 15)) {
+                    isDragging = false;
+                    chatScreen.classList.remove('dragging');
+                    return;
+                }
+                // Need minimum left movement to start
+                if (dx > -10) {
+                    return; // Wait for more movement
+                }
             }
             
             if (dt > 0) {
@@ -835,16 +846,16 @@
             dragLastTime = now;
             
             if (!isDrawerOpen) {
-                // Opening: dragging from right edge to left
-                const deltaX = dragStartX - touchX; // positive when moving left
+                // Opening: dragging left to open drawer
+                const deltaX = -dx; // positive when moving left (dx is negative)
                 if (deltaX > 0) {
                     dragCurrentX = Math.min(deltaX, drawerWidth);
                     setChatPosition(dragCurrentX);
                 }
             } else {
-                // Closing: dragging from right to left
-                const deltaX = touchX - dragStartX;
-                dragCurrentX = Math.max(0, Math.min(drawerWidth + deltaX, drawerWidth));
+                // Closing: dragging right to close drawer
+                const deltaX = dx; // positive when moving right
+                dragCurrentX = Math.max(0, Math.min(drawerWidth - deltaX, drawerWidth));
                 setChatPosition(dragCurrentX);
             }
             
@@ -860,19 +871,23 @@
             
             // Predictive snap based on velocity and position
             const progress = dragCurrentX / drawerWidth;
-            const shouldOpen = (dragVelocity < -VELOCITY_THRESHOLD) || 
-                              (Math.abs(dragVelocity) < VELOCITY_THRESHOLD && progress > POSITION_THRESHOLD);
             
             if (!isDrawerOpen) {
-                // Was trying to open
+                // Was trying to OPEN drawer
+                // Open if: swiped left fast (velocity < -threshold) OR moved past threshold
+                const shouldOpen = (dragVelocity < -VELOCITY_THRESHOLD) || 
+                                  (Math.abs(dragVelocity) <= VELOCITY_THRESHOLD && progress > POSITION_THRESHOLD);
                 if (shouldOpen) {
                     openDrawer();
                 } else {
                     closeDrawer();
                 }
             } else {
-                // Was trying to close
-                if (!shouldOpen || dragVelocity > VELOCITY_THRESHOLD) {
+                // Was trying to CLOSE drawer
+                // Close if: swiped right fast (velocity > threshold) OR moved past threshold
+                const shouldClose = (dragVelocity > VELOCITY_THRESHOLD) || 
+                                   (Math.abs(dragVelocity) <= VELOCITY_THRESHOLD && progress < (1 - POSITION_THRESHOLD));
+                if (shouldClose) {
                     closeDrawer();
                 } else {
                     openDrawer();
