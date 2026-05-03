@@ -14,7 +14,6 @@ import {
   Platform,
   SafeAreaView,
 } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.85;
@@ -215,9 +214,8 @@ export default function App() {
   );
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
 
         {/* Drawer */}
         <View style={styles.drawer}>
@@ -269,8 +267,7 @@ export default function App() {
           </KeyboardAvoidingView>
         </Animated.View>
       </SafeAreaView>
-    </GestureHandlerRootView>
-  );
+    );
 }
 
 const styles = StyleSheet.create({
