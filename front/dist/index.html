@@ -19,16 +19,14 @@
         }
         
         html, body {
-            width: 100%; height: 100%; overflow: hidden;
+            width: 100%; height: 100dvh; overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg); color: var(--text);
-            position: fixed; top: 0; left: 0;
         }
         
         .app {
-            width: 100%; height: 100%;
-            position: fixed; top: 0; left: 0;
-            overflow: hidden;
+            width: 100%; height: 100dvh;
+            position: relative; overflow: hidden;
             background: var(--bg);
         }
         
@@ -392,32 +390,25 @@
         }
         
         // ===== VIEWPORT =====
+        // Use visualViewport if available, fallback to window dimensions
         function updateViewport() {
             const vv = window.visualViewport;
-            let h, w, offsetTop = 0, offsetLeft = 0;
+            const app = document.querySelector('.app');
             
             if (vv) {
-                h = vv.height;
-                w = vv.width;
-                offsetTop = vv.offsetTop;
-                offsetLeft = vv.offsetLeft;
-            } else {
-                h = window.innerHeight;
-                w = window.innerWidth;
+                // visualViewport accounts for keyboard, toolbars, etc.
+                const h = vv.height;
+                const w = vv.width;
+                app.style.height = h + 'px';
+                app.style.width = w + 'px';
             }
-            
-            const app = document.querySelector('.app');
-            app.style.height = h + 'px';
-            app.style.width = w + 'px';
-            app.style.top = offsetTop + 'px';
-            app.style.left = offsetLeft + 'px';
+            // If no visualViewport, CSS 100dvh handles it
         }
         
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', updateViewport);
+            window.visualViewport.addEventListener('scroll', updateViewport);
         }
-        window.addEventListener('resize', updateViewport);
-        window.addEventListener('orientationchange', updateViewport);
         updateViewport();
         
         // ===== INIT =====
