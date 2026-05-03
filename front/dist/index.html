@@ -22,11 +22,13 @@
             width: 100%; height: 100%; overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg); color: var(--text);
+            position: fixed; top: 0; left: 0;
         }
         
         .app {
             width: 100%; height: 100%;
-            position: relative; overflow: hidden;
+            position: fixed; top: 0; left: 0;
+            overflow: hidden;
             background: var(--bg);
         }
         
@@ -391,15 +393,29 @@
         
         // ===== VIEWPORT =====
         function updateViewport() {
-            const h = window.innerHeight;
-            const w = window.innerWidth;
+            const vv = window.visualViewport;
+            let h, w, offsetTop = 0, offsetLeft = 0;
+            
+            if (vv) {
+                h = vv.height;
+                w = vv.width;
+                offsetTop = vv.offsetTop;
+                offsetLeft = vv.offsetLeft;
+            } else {
+                h = window.innerHeight;
+                w = window.innerWidth;
+            }
+            
             const app = document.querySelector('.app');
             app.style.height = h + 'px';
             app.style.width = w + 'px';
-            document.documentElement.style.height = h + 'px';
-            document.body.style.height = h + 'px';
+            app.style.top = offsetTop + 'px';
+            app.style.left = offsetLeft + 'px';
         }
         
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateViewport);
+        }
         window.addEventListener('resize', updateViewport);
         window.addEventListener('orientationchange', updateViewport);
         updateViewport();
