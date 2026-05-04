@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet, Platform } from 'react-native';
+import { View, FlatList, StyleSheet } from 'react-native';
 import { COLORS, CHATS } from '../constants';
 import type { Chat } from '../types';
 import { Chat as ChatItem } from './Chat';
@@ -38,9 +38,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: 8,
+    paddingBottom: 8,
     paddingHorizontal: 12,
-    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     backgroundColor: COLORS.bg,

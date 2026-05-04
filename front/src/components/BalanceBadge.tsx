@@ -22,16 +22,20 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 4,
+    paddingLeft: 4,
+    paddingRight: 10,
+    gap: 6,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   balance: {
     color: COLORS.text,
     fontSize: 14,
+    lineHeight: 18,
     fontWeight: '600',
   },
 });

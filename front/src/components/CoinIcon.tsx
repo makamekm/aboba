@@ -12,13 +12,14 @@ export const CoinIcon: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 6,
+    paddingBottom: 2,
   },
   icon: {
-    fontSize: 14,
+    fontSize: 18,
   },
 });
