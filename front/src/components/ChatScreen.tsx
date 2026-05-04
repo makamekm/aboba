@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,11 @@ import {
 } from 'react-native';
 import { COLORS, MESSAGES } from '../constants';
 import type { Message } from '../types';
-import { Message as MessageItem } from './Message';
+import { SelfMessageFactory } from './SelfMessageFactory';
+import { PeerMessageFactory } from './PeerMessageFactory';
 
 interface ChatScreenProps {
   chatId: string | null;
-  keyboardHeight: number;
   onBack: () => void;
 }
 
@@ -25,9 +25,19 @@ const WELCOME_MESSAGE: Message = {
   time: '',
 };
 
-export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, keyboardHeight, onBack }) => {
+const INPUT_ROW_HEIGHT = 36;
+const INPUT_LINE_HEIGHT = 20;
+const MAX_ROWS = 10;
+const MAX_INPUT_HEIGHT = INPUT_ROW_HEIGHT * MAX_ROWS;
+
+export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, onBack }) => {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [inputText, setInputText] = useState('');
+
+  const lines = useMemo(() => inputText.split('\n').length, [inputText]);
+  const currentLines = useMemo(() => Math.min(lines, MAX_ROWS), [lines]);
+
+  const inputHeight = useMemo(() => Math.max(INPUT_LINE_HEIGHT * currentLines, INPUT_ROW_HEIGHT), [currentLines]);
   const scrollRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -37,31 +47,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, keyboardHeight, 
       setMessages(MESSAGES);
     }
   }, [chatId]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-
-    const interval = setInterval(() => {
-      const textarea = document.querySelector('textarea[placeholder="Message..."]');
-      if (textarea) {
-        const container = textarea.parentElement;
-        if (container) {
-          container.style.setProperty('position', 'fixed', 'important');
-          container.style.setProperty('bottom', '0px', 'important');
-          container.style.setProperty('left', '0px', 'important');
-          container.style.setProperty('right', '0px', 'important');
-          container.style.setProperty('z-index', '9999', 'important');
-          clearInterval(interval);
-        }
-      }
-    }, 100);
-
-    const timeout = setTimeout(() => clearInterval(interval), 5000);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, []);
 
   const sendMessage = () => {
     if (!inputText.trim()) return;
@@ -73,12 +58,24 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, keyboardHeight, 
     };
     setMessages((prev) => [...prev, newMsg]);
     setInputText('');
+
+    // Reset textarea height on web
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const textarea = document.querySelector('textarea[placeholder="Message..."]') as HTMLTextAreaElement | null;
+      if (textarea) textarea.style.height = INPUT_ROW_HEIGHT + 'px';
+    }
+
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
-  const renderMessage = ({ item }: { item: Message }) => (
-    <MessageItem message={item} />
-  );
+  const renderMessage = ({ item }: { item: Message }) => {
+    const isSelf = item.sender === 'me' || item.sender === 'user';
+    return isSelf ? (
+      <SelfMessageFactory message={item} />
+    ) : (
+      <PeerMessageFactory message={item} />
+    );
+  };
 
   return (
     <View style={styles.screen}>
@@ -88,24 +85,39 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, keyboardHeight, 
           data={messages}
           keyExtractor={(item: Message) => item.id}
           renderItem={renderMessage}
-          contentContainerStyle={styles.messagesList}
+          contentContainerStyle={[styles.messagesList, { paddingBottom: inputHeight + 32 }]}
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10,
+          }}
+          scrollEventThrottle={16}
+          onEndReachedThreshold={0.1}
+          automaticallyAdjustContentInsets={false}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={20}
         />
       </View>
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder="Message..."
-          placeholderTextColor={COLORS.textSecondary}
-          multiline
-          maxHeight={100}
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-          <Text style={styles.sendIcon}>➤</Text>
-        </TouchableOpacity>
+      <View style={[styles.inputWrapper, { bottom: 8 }]}>
+        <View style={[styles.inputContainer, { minHeight: inputHeight + 12 }]}>
+          <View style={styles.inputWrapperFlex}>
+            <TextInput
+              style={[styles.input, { height: inputHeight, maxHeight: MAX_INPUT_HEIGHT }]}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Message..."
+              placeholderTextColor={COLORS.textSecondary}
+              multiline
+              numberOfLines={currentLines}
+              scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+            />
+          </View>
+          <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+            <Text style={styles.sendIcon}>➤</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -122,46 +134,62 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   messagesList: {
-    padding: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     flexGrow: 1,
   },
 
-  inputContainer: {
+  inputWrapper: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    left: 8,
+    right: 8,
+    bottom: 8,
+    borderRadius: 28,
+    overflow: 'hidden',
     zIndex: 100,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(30, 30, 30, 0.85)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  inputWrapperFlex: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'stretch',
+    flexDirection: 'row',
+    alignSelf: 'center',
   },
   input: {
     flex: 1,
-    backgroundColor: COLORS.inputBg,
+    backgroundColor: 'transparent',
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     color: COLORS.text,
     fontSize: 15,
-    maxHeight: 100,
-    marginRight: 8,
+    marginRight: 4,
+    lineHeight: 20,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 100,
     backgroundColor: COLORS.primary,
+    flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingLeft: 4,
   },
   sendIcon: {
-    color: COLORS.text,
+    color: '#fff',
     fontSize: 18,
-    marginLeft: 2,
   },
 });
