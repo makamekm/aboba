@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useImperativeHandle, forwardRef, useEffect } from 'react';
+import React, { useRef, useCallback, useImperativeHandle, forwardRef, useEffect, useMemo } from 'react';
 import {
   View,
   Animated,
@@ -27,57 +27,64 @@ export const SwipeView = forwardRef<SwipeViewRef, SwipeViewProps>(({
 }, ref) => {
   const { width: screenWidth } = useWindowDimensions();
 
+  const finalOffsetX = useMemo(() => -screenWidth * 0.3, [screenWidth]);
+
+  const isOpenRef = useRef(true);
+
   // Use HTMLDivElement refs for direct DOM manipulation during drag
   const backRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLDivElement>(null);
-  const backX = useRef(new Animated.Value(0)).current;
-  const frontX = useRef(new Animated.Value(screenWidth)).current;
+  const backX = useRef(new Animated.Value(isOpenRef.current ? finalOffsetX : 0)).current;
+  const frontX = useRef(new Animated.Value(isOpenRef.current ? 0 : screenWidth)).current;
   const isAnimating = useRef(false);
   const isDragging = useRef(false);
   const dragStartX = useRef(0);
   const dragCurrentX = useRef(0);
   const dragStartY = useRef(0);
   const dragStartTime = useRef(0);
-  const isOpenRef = useRef(false);
 
-  // useEffect(() => {
-  //   if (isOpenRef.current) {
-  //     backX.setValue(-screenWidth * 0.3);
-  //     frontX.setValue(0);
-  //   } else {
-  //     backX.setValue(0);
-  //     frontX.setValue(screenWidth);
-  //   }
-  // }, [screenWidth]);
+  useEffect(() => {
+    if (isAnimating.current) return;
+    if (isDragging.current) return;
+    if (isOpenRef.current) {
+      backX.setValue(finalOffsetX);
+      frontX.setValue(0);
+    } else {
+      backX.setValue(0);
+      frontX.setValue(screenWidth);
+    }
+  }, [screenWidth, finalOffsetX]);
 
   const open = useCallback(() => {
     if (isAnimating.current || isOpenRef.current) return;
     isAnimating.current = true;
     isOpenRef.current = true;
-    backX.setValue(0);
-    frontX.setValue(screenWidth);
     Animated.parallel([
-      Animated.timing(backX, { toValue: -screenWidth * 0.3, duration: 200, useNativeDriver: true }),
-      Animated.timing(frontX, { toValue: 0, duration: 200, useNativeDriver: true }),
-    ]).start(() => { isAnimating.current = false; });
-  }, [backX, frontX, screenWidth]);
+      Animated.timing(backX, { toValue: finalOffsetX, duration: 200, useNativeDriver: false }),
+      Animated.timing(frontX, { toValue: 0, duration: 200, useNativeDriver: false }),
+    ]).start(() => {
+      isOpenRef.current = true;
+      isAnimating.current = false;
+    });
+  }, [backX, frontX, screenWidth, finalOffsetX]);
 
   const close = useCallback(() => {
     if (isAnimating.current || !isOpenRef.current) return;
+    isOpenRef.current = false;
     isAnimating.current = true;
     Animated.parallel([
-      Animated.timing(backX, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(frontX, { toValue: screenWidth, duration: 200, useNativeDriver: true }),
+      Animated.timing(backX, { toValue: 0, duration: 200, useNativeDriver: false }),
+      Animated.timing(frontX, { toValue: screenWidth, duration: 200, useNativeDriver: false }),
     ]).start(() => {
       isOpenRef.current = false;
       isAnimating.current = false;
     });
-  }, [backX, frontX, screenWidth]);
+  }, [backX, frontX, screenWidth, finalOffsetX]);
 
   useImperativeHandle(ref, () => ({ open, close }), [open, close]);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!isOpenRef.current || isAnimating.current) return;
+    if (isAnimating.current) return;
     backX.stopAnimation();
     frontX.stopAnimation();
     const touch = e.changedTouches[0];
@@ -106,19 +113,19 @@ export const SwipeView = forwardRef<SwipeViewRef, SwipeViewProps>(({
     const dy = clientY - dragStartY.current;
 
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5) {
-      // e.preventDefault();
+      // e.preventDefault() doesn't work in passive listener
     } else if (Math.abs(dy) >= Math.abs(dx)) {
       isDragging.current = false;
       // Snap back to current state with animation
       if (isOpenRef.current) {
         Animated.parallel([
-          Animated.timing(backX, { toValue: -screenWidth * 0.3, duration: 200, useNativeDriver: true }),
-          Animated.timing(frontX, { toValue: 0, duration: 200, useNativeDriver: true }),
+          Animated.timing(backX, { toValue: finalOffsetX, duration: 200, useNativeDriver: false }),
+          Animated.timing(frontX, { toValue: 0, duration: 200, useNativeDriver: false }),
         ]).start();
       } else {
         Animated.parallel([
-          Animated.timing(backX, { toValue: 0, duration: 200, useNativeDriver: true }),
-          Animated.timing(frontX, { toValue: screenWidth, duration: 200, useNativeDriver: true }),
+          Animated.timing(backX, { toValue: 0, duration: 200, useNativeDriver: false }),
+          Animated.timing(frontX, { toValue: screenWidth, duration: 200, useNativeDriver: false }),
         ]).start();
       }
       return;
@@ -127,13 +134,23 @@ export const SwipeView = forwardRef<SwipeViewRef, SwipeViewProps>(({
     // console.log(dx, clientX, dragStartX.current);
 
     dragCurrentX.current = clientX;
-    const progress = Math.max(0, dx);
-    const backTarget = -screenWidth * 0.3 + progress * 0.3;
-    const frontTarget = progress;
 
-    backX.setValue(backTarget);
-    frontX.setValue(frontTarget);
-  }, [backX, frontX, open, close, screenWidth]);
+    if (isOpenRef.current) {
+      // Chat open, dragging right → open chats
+      const progress = Math.min(screenWidth, Math.max(0, dx));
+      const backTarget = finalOffsetX + progress * 0.3;
+      const frontTarget = progress;
+      backX.setValue(backTarget);
+      frontX.setValue(frontTarget);
+    } else {
+      // Chats open, dragging left → close chats
+      const progress = Math.min(screenWidth, Math.max(0, -dx));
+      const backTarget = -progress * 0.3;
+      const frontTarget = screenWidth - progress;
+      backX.setValue(backTarget);
+      frontX.setValue(frontTarget);
+    }
+  }, [backX, frontX, open, close, screenWidth, finalOffsetX]);
 
   const onTouchEnd = useCallback((event: GestureResponderEvent) => {
     if (!isDragging.current) return;
@@ -143,18 +160,33 @@ export const SwipeView = forwardRef<SwipeViewRef, SwipeViewProps>(({
     const dx = dragCurrentX.current - dragStartX.current;
     const dt = Date.now() - dragStartTime.current;
     const vx = dx / dt;
-    const progress = dx / screenWidth;
 
-    if (progress > snapThreshold || vx > velocityThreshold) {
-      close();
+    if (isOpenRef.current) {
+      // Chat open, check if we should open chats
+      const progress = dx / screenWidth;
+      if (progress > snapThreshold || vx > velocityThreshold) {
+        close();
+      } else {
+        // Snap back to chat open - start from current drag position
+        Animated.parallel([
+          Animated.timing(backX, { toValue: finalOffsetX, duration: 200, useNativeDriver: false }),
+          Animated.timing(frontX, { toValue: 0, duration: 200, useNativeDriver: false }),
+        ]).start();
+      }
     } else {
-      // Snap back to open position with animation
-      Animated.parallel([
-        Animated.timing(backX, { toValue: -screenWidth * 0.3, duration: 200, useNativeDriver: true }),
-        Animated.timing(frontX, { toValue: 0, duration: 200, useNativeDriver: true }),
-      ]).start();
+      // Chats open, check if we should close
+      const progress = -dx / screenWidth;
+      if (progress > snapThreshold || -vx > velocityThreshold) {
+        open();
+      } else {
+        // Snap back to chats open - start from current drag position
+        Animated.parallel([
+          Animated.timing(backX, { toValue: 0, duration: 200, useNativeDriver: false }),
+          Animated.timing(frontX, { toValue: screenWidth, duration: 200, useNativeDriver: false }),
+        ]).start();
+      }
     }
-  }, [close, snapThreshold, velocityThreshold, backX, frontX, screenWidth]);
+  }, [open, close, snapThreshold, velocityThreshold, backX, frontX, screenWidth, finalOffsetX]);
 
   return (
     <View style={styles.container}>
@@ -166,6 +198,10 @@ export const SwipeView = forwardRef<SwipeViewRef, SwipeViewProps>(({
           styles.backLayer,
           { transform: [{ translateX: backX }] },
         ]}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
       >
         {backScreen}
       </Animated.View>
@@ -193,6 +229,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+    touchAction: 'none',
   },
   layer: {
     position: 'absolute',
@@ -200,6 +237,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    touchAction: 'none',
   },
   backLayer: {
     zIndex: 1,

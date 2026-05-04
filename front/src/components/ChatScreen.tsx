@@ -13,13 +13,30 @@ import type { Message } from '../types';
 import { Message as MessageItem } from './Message';
 
 interface ChatScreenProps {
+  chatId: string | null;
   keyboardHeight: number;
+  onBack: () => void;
 }
 
-export const ChatScreen: React.FC<ChatScreenProps> = ({ keyboardHeight }) => {
-  const [messages, setMessages] = useState<Message[]>(MESSAGES);
+const WELCOME_MESSAGE: Message = {
+  id: 'welcome',
+  text: 'Welcome! I am the default system bot. Say "Hello" to start chatting with me.',
+  sender: 'other',
+  time: '',
+};
+
+export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, keyboardHeight, onBack }) => {
+  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [inputText, setInputText] = useState('');
   const scrollRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    if (chatId === null) {
+      setMessages([WELCOME_MESSAGE]);
+    } else {
+      setMessages(MESSAGES);
+    }
+  }, [chatId]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;

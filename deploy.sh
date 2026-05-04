@@ -31,7 +31,7 @@ pm2 delete "${PROJECT_NAME}-front" 2>/dev/null || true
 pm2 start "npx" \
     --name "${PROJECT_NAME}-front" \
     --cwd "${FRONT_DIR}" \
-    -- serve "${FRONT_DIR}/dist" -l ${FRONT_PORT} -s
+    -- serve "${FRONT_DIR}/dist" -l ${FRONT_PORT}
 
 # ── BACKEND ──
 echo "→ Building backend..."
