@@ -40,15 +40,15 @@ export const SwipeView = forwardRef<SwipeViewRef, SwipeViewProps>(({
   const dragStartTime = useRef(0);
   const isOpenRef = useRef(false);
 
-  useEffect(() => {
-    if (isOpenRef.current) {
-      backX.setValue(-screenWidth * 0.3);
-      frontX.setValue(0);
-    } else {
-      backX.setValue(0);
-      frontX.setValue(screenWidth);
-    }
-  }, [screenWidth]);
+  // useEffect(() => {
+  //   if (isOpenRef.current) {
+  //     backX.setValue(-screenWidth * 0.3);
+  //     frontX.setValue(0);
+  //   } else {
+  //     backX.setValue(0);
+  //     frontX.setValue(screenWidth);
+  //   }
+  // }, [screenWidth]);
 
   const open = useCallback(() => {
     if (isAnimating.current || isOpenRef.current) return;
@@ -80,20 +80,30 @@ export const SwipeView = forwardRef<SwipeViewRef, SwipeViewProps>(({
     if (!isOpenRef.current || isAnimating.current) return;
     backX.stopAnimation();
     frontX.stopAnimation();
-    const touch = e.touches[0];
+    const touch = e.changedTouches[0];
     dragStartX.current = touch.clientX;
     dragStartY.current = touch.clientY;
     dragStartTime.current = Date.now();
     dragCurrentX.current = touch.clientX;
     isDragging.current = true;
+    // console.log('START', touch.clientX, touch.clientY);
   }, [backX, frontX]);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging.current) return;
-    const touch = e.touches[0];
+    const touch = e.changedTouches[0];
+    const clientX = touch.clientX;
+    const clientY = touch.clientY;
 
-    const dx = touch.clientX - dragStartX.current;
-    const dy = touch.clientY - dragStartY.current;
+    // Skip jumpy touches (>50px in one frame = glitch)
+    const deltaFromLast = Math.abs(clientX - dragCurrentX.current);
+    if (dragCurrentX.current !== 0 && deltaFromLast > 50) {
+      // console.log('SKIP', clientX, dragCurrentX.current, deltaFromLast);
+      return;
+    }
+
+    const dx = clientX - dragStartX.current;
+    const dy = clientY - dragStartY.current;
 
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5) {
       // e.preventDefault();
@@ -114,15 +124,13 @@ export const SwipeView = forwardRef<SwipeViewRef, SwipeViewProps>(({
       return;
     }
 
-    console.log(dx, touch.clientX, dragStartX.current);
+    // console.log(dx, clientX, dragStartX.current);
 
-    dragCurrentX.current = touch.clientX;
+    dragCurrentX.current = clientX;
     const progress = Math.max(0, dx);
     const backTarget = -screenWidth * 0.3 + progress * 0.3;
     const frontTarget = progress;
 
-    backX.stopAnimation();
-    frontX.stopAnimation();
     backX.setValue(backTarget);
     frontX.setValue(frontTarget);
   }, [backX, frontX, open, close, screenWidth]);
@@ -130,6 +138,7 @@ export const SwipeView = forwardRef<SwipeViewRef, SwipeViewProps>(({
   const onTouchEnd = useCallback((event: GestureResponderEvent) => {
     if (!isDragging.current) return;
     isDragging.current = false;
+    // console.log('END');
 
     const dx = dragCurrentX.current - dragStartX.current;
     const dt = Date.now() - dragStartTime.current;
