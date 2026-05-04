@@ -48,6 +48,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, onBack }) => {
     }
   }, [chatId]);
 
+  // useEffect(() => {
+  //   if (Platform.OS !== 'web' || !scrollRef.current) return;
+
+  //   // Get DOM element from FlatList ref
+  //   // @ts-ignore - internal react-native-web property
+  //   const listRef = scrollRef.current._listRef || scrollRef.current;
+  //   // @ts-ignore
+  //   const scrollRef2 = listRef._scrollRef || listRef;
+  //   // @ts-ignore
+  //   const domNode = scrollRef2._scrollNodeRef || scrollRef2;
+
+  //   if (domNode && domNode.classList) {
+  //     domNode.classList.add('scrollable');
+  //   }
+  // }, [scrollRef.current]);
+
   const sendMessage = () => {
     if (!inputText.trim()) return;
     const newMsg: Message = {
@@ -56,16 +72,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, onBack }) => {
       sender: 'me',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
-    setMessages((prev) => [...prev, newMsg]);
+    setMessages((prev) => [newMsg, ...prev]);
     setInputText('');
 
-    // Reset textarea height on web
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      const textarea = document.querySelector('textarea[placeholder="Message..."]') as HTMLTextAreaElement | null;
-      if (textarea) textarea.style.height = INPUT_ROW_HEIGHT + 'px';
-    }
-
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    setTimeout(() => scrollRef.current?.scrollToOffset({ offset: 1, animated: true }), 100);
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
@@ -83,13 +93,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, onBack }) => {
         <FlatList
           ref={scrollRef}
           data={messages}
+          inverted
           keyExtractor={(item: Message) => item.id}
           renderItem={renderMessage}
-          contentContainerStyle={[styles.messagesList, { paddingBottom: inputHeight + 32 }]}
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+          contentContainerStyle={[styles.messagesList, { paddingTop: inputHeight + 28 }]}
           maintainVisibleContentPosition={{
-            minIndexForVisible: 0,
-            autoscrollToTopThreshold: 10,
+            minIndexForVisible: 1,
+            // autoscrollToTopThreshold: 10,
           }}
           scrollEventThrottle={16}
           onEndReachedThreshold={0.1}
