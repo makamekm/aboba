@@ -45,7 +45,6 @@ export const MessageFactory: React.FC<MessageFactoryProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 8,
     paddingVertical: 2,
   },
   alignRight: {
