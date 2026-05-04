@@ -1,32 +1,27 @@
-import React, { useState, useCallback } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { ChatsScreen } from './src/components/ChatsScreen';
 import { ChatScreen } from './src/components/ChatScreen';
-import { SwipeView } from './src/components/SwipeView';
+import { SwipeView, type SwipeViewRef } from './src/components/SwipeView';
 import { useKeyboardHeight } from './src/hooks/useKeyboardHeight';
 import type { Chat } from './src/types';
 
 export function App(): JSX.Element {
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [currentChat, setCurrentChat] = useState<Chat | null>(null);
+  const swipeRef = useRef<SwipeViewRef>(null);
   const keyboardHeight = useKeyboardHeight();
 
   const openChat = useCallback((chat: Chat) => {
-    setCurrentChat(chat);
-    setIsChatOpen(true);
+    swipeRef.current?.open();
   }, []);
 
   const closeChat = useCallback(() => {
-    setIsChatOpen(false);
-    setCurrentChat(null);
+    swipeRef.current?.close();
   }, []);
 
   return (
     <SwipeView
+      ref={swipeRef}
       backScreen={<ChatsScreen onSelectChat={openChat} />}
-      frontScreen={<ChatScreen keyboardHeight={keyboardHeight} />}
-      isOpen={isChatOpen}
-      onOpen={() => setIsChatOpen(true)}
-      onClose={closeChat}
+      frontScreen={<ChatScreen keyboardHeight={keyboardHeight} onBack={closeChat} />}
     />
   );
 }

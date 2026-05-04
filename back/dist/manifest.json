@@ -1,8 +1,0 @@
-{
-  "display": "standalone",
-  "lang": "en",
-  "name": "AbobaApp",
-  "short_name": "AbobaApp",
-  "start_url": "/?utm_source=web_app_manifest",
-  "orientation": "portrait"
-}

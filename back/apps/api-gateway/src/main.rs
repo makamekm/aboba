@@ -1,5 +1,6 @@
 use axum::{
     body::Body,
+    extract::{Path, Request},
     response::Response,
     routing::get,
     Router,
@@ -31,21 +32,49 @@ async fn health_handler() -> Response<Body> {
         .unwrap()
 }
 
-#[derive(serde::Serialize)]
-struct PingResponse {
-    message: &'static str,
-}
+async fn proxy_handler(req: Request<Body>) -> Response<Body> {
+    let client = reqwest::Client::new();
+    let front_url = std::env::var("FRONTEND_URL").unwrap_or_else(|_| "http://localhost:8081".to_string());
+    let path = req.uri().path();
+    let query = req.uri().query().map(|q| format!("?{}", q)).unwrap_or_default();
+    
+    let target_url = format!("{}{}{}", front_url, path, query);
 
-async fn ping_handler() -> Response<Body> {
-    let body = serde_json::to_string(&PingResponse {
-        message: "pong",
-    }).unwrap_or_else(|_| r#"{"message":"pong"}"#.to_string());
+    let method = reqwest::Method::from_bytes(req.method().as_str().as_bytes())
+        .unwrap_or(reqwest::Method::GET);
 
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("content-type", "application/json")
-        .body(Body::from(body))
-        .unwrap()
+    let mut proxy_req = client.request(method, &target_url);
+
+    // Remove Accept-Encoding to prevent gzip compression
+    for (key, value) in req.headers() {
+        let key_str = key.as_str();
+        if key_str != "host" && key_str != "accept-encoding" {
+            proxy_req = proxy_req.header(key_str, value.as_bytes());
+        }
+    }
+
+    match proxy_req.send().await {
+        Ok(res) => {
+            let status = StatusCode::from_u16(res.status().as_u16()).unwrap_or(StatusCode::OK);
+            let content_type = res.headers().get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("application/octet-stream")
+                .to_string();
+            let body_bytes = res.bytes().await.unwrap_or_default();
+            Response::builder()
+                .status(status)
+                .header("content-type", content_type)
+                .body(Body::from(body_bytes))
+                .unwrap()
+        }
+        Err(e) => {
+            error!("Proxy error: {}", e);
+            Response::builder()
+                .status(StatusCode::BAD_GATEWAY)
+                .body(Body::from(format!("Proxy error: {}", e)))
+                .unwrap()
+        }
+    }
 }
 
 #[tokio::main]
@@ -68,7 +97,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/health", get(health_handler))
-        .route("/api/ping", get(ping_handler))
+        .fallback(get(proxy_handler))
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 

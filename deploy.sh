@@ -17,7 +17,7 @@ echo "=== [${PROJECT_NAME}] Deploy started ==="
 echo "→ Building frontend..."
 cd "${FRONT_DIR}"
 
-rm -rf web-build
+rm -rf web-build .expo
 
 if [ ! -d "node_modules" ]; then
     echo "→ Installing frontend deps..."
@@ -30,6 +30,7 @@ echo "→ Starting frontend server on port ${FRONT_PORT}..."
 pm2 delete "${PROJECT_NAME}-front" 2>/dev/null || true
 pm2 start "npx" \
     --name "${PROJECT_NAME}-front" \
+    --cwd "${FRONT_DIR}" \
     -- serve "${FRONT_DIR}/web-build" -l ${FRONT_PORT} -s
 
 # ── BACKEND ──
