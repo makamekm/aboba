@@ -1,4 +1,14 @@
 {
-  "name": "AbobaApp",
-  "displayName": "AbobaApp"
+  "expo": {
+    "name": "AbobaApp",
+    "slug": "aboba",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "web": {
+      "bundler": "webpack",
+      "output": "single"
+    }
+  }
 }

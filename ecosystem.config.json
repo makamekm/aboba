@@ -1,26 +1,10 @@
 {
   "apps": [
     {
-      "name": "aboba-ping",
-      "script": "/home/makame/projects/aboba/back/target/release/ping",
-      "env": {
-        "PING_SERVICE_PORT": "3002",
-        "RUST_LOG": "info"
-      },
-      "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
-      "out_file": "/home/makame/.pm2/logs/aboba-ping-out.log",
-      "error_file": "/home/makame/.pm2/logs/aboba-ping-error.log",
-      "merge_logs": true,
-      "autorestart": true,
-      "max_restarts": 5,
-      "min_uptime": "10s"
-    },
-    {
       "name": "aboba-gateway",
       "script": "/home/makame/projects/aboba/back/target/release/api-gateway",
       "env": {
-        "GATEWAY_PORT": "3000",
-        "GATEWAY_PING_SERVICE_URL": "http://127.0.0.1:3002",
+        "GATEWAY_PORT": "8000",
         "RUST_LOG": "info"
       },
       "log_date_format": "YYYY-MM-DD HH:mm:ss Z",

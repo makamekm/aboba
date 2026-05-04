@@ -1,6 +1,6 @@
 # Aboba
 
-Fullstack project with Kotlin Multiplatform frontend and Rust/NX backend.
+Fullstack project with **React Native** frontend and Rust/NX backend.
 
 ## Architecture
 
@@ -11,22 +11,21 @@ Fullstack project with Kotlin Multiplatform frontend and Rust/NX backend.
 - Services communicate via HTTP
 
 ### Frontend (`front/`)
-- **Kotlin Multiplatform** (KMP)
-- Targets: **Android**, **iOS**, **Web (WASM)**
-- **Compose Multiplatform** UI
-- **Reaktive** for reactive state management
-- Singleton services with `AsyncInit` pattern
+- **React Native** with `react-native-web` for Web
+- **Expo** toolchain
+- Targets: **Android**, **iOS**, **Web**
+- Dark theme inspired by ChatGPT
+- Swipe-to-go-back navigation via custom `SwipeView` component
 
 ## Features
 - Dark theme inspired by ChatGPT
 - Ping/Pong communication between frontend and backend
+- Chat list with swipe navigation
 
 ## Requirements
 - Rust + Cargo
 - Node.js + npm (for NX)
-- JDK 17+
-- Android SDK (for Android builds)
-- Xcode (for iOS builds)
+- Expo CLI
 
 ## Quick Start
 
@@ -41,19 +40,20 @@ cd back && cargo run --release -p api-gateway
 
 ### Frontend
 
-#### Web (WASM)
+#### Web
 ```bash
-cd front && ./gradlew :composeApp:wasmJsBrowserDevelopmentRun
+cd front && npx expo start --web
 ```
-Open http://localhost:8080
 
 #### Android
 ```bash
-cd front && ./gradlew :composeApp:installDebug
+cd front && npx expo run:android
 ```
 
 #### iOS
-Open `front/iosApp/iosApp.xcodeproj` in Xcode and run.
+```bash
+cd front && npx expo run:ios
+```
 
 ## Services
 
