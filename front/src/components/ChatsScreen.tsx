@@ -41,8 +41,10 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 12,
+    backgroundColor: 'rgba(10, 10, 10, 0.85)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.bg,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
 });
