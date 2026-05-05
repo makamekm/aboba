@@ -25,8 +25,9 @@ const WELCOME_MESSAGE: Message = {
   time: '',
 };
 
-const INPUT_ROW_HEIGHT = 40;
+const INPUT_ROW_HEIGHT = 38;
 const INPUT_LINE_HEIGHT = 20;
+const INPUT_PADDING = 20;
 const MAX_ROWS = 10;
 const MAX_INPUT_HEIGHT = INPUT_ROW_HEIGHT * MAX_ROWS;
 
@@ -37,7 +38,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, onBack }) => {
   const lines = useMemo(() => inputText.split('\n').length, [inputText]);
   const currentLines = useMemo(() => Math.min(lines, MAX_ROWS), [lines]);
 
-  const inputHeight = useMemo(() => Math.max(INPUT_LINE_HEIGHT * currentLines, INPUT_ROW_HEIGHT), [currentLines]);
+  const inputHeight = useMemo(() => Math.max(INPUT_LINE_HEIGHT * currentLines + INPUT_PADDING, INPUT_ROW_HEIGHT), [currentLines]);
   const scrollRef = useRef<FlatList>(null);
 
   useEffect(() => {
