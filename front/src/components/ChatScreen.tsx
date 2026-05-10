@@ -7,6 +7,7 @@ import {
   FlatList,
   StyleSheet,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { COLORS, MESSAGES } from '../constants';
 import type { Message } from '../types';
@@ -25,20 +26,22 @@ const WELCOME_MESSAGE: Message = {
   time: '',
 };
 
-const INPUT_ROW_HEIGHT = 38;
 const INPUT_LINE_HEIGHT = 20;
-const INPUT_PADDING = 20;
-const MAX_ROWS = 10;
-const MAX_INPUT_HEIGHT = INPUT_ROW_HEIGHT * MAX_ROWS;
+const INPUT_PADDING = 18;
+const INPUT_ROW_HEIGHT = INPUT_LINE_HEIGHT + INPUT_PADDING;
+const MAX_ROWS = 20;
+const MAX_INPUT_HEIGHT = Math.max(INPUT_LINE_HEIGHT * MAX_ROWS, INPUT_ROW_HEIGHT);
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, onBack }) => {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [inputText, setInputText] = useState('');
+  const { height: screenHeight } = useWindowDimensions();
 
   const lines = useMemo(() => inputText.split('\n').length, [inputText]);
   const currentLines = useMemo(() => Math.min(lines, MAX_ROWS), [lines]);
 
-  const inputHeight = useMemo(() => Math.max(INPUT_LINE_HEIGHT * currentLines + INPUT_PADDING, INPUT_ROW_HEIGHT), [currentLines]);
+  const inputHeight = useMemo(() => Math.min(Math.max(INPUT_LINE_HEIGHT * currentLines + INPUT_PADDING, INPUT_ROW_HEIGHT), screenHeight / 2), [currentLines]);
+  const maxInputHeight = Math.min(MAX_INPUT_HEIGHT, screenHeight / 2);
   const scrollRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -115,14 +118,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({ chatId, onBack }) => {
         <View style={[styles.inputContainer, { minHeight: inputHeight + 12 }]}>
           <View style={styles.inputWrapperFlex}>
             <TextInput
-              style={[styles.input, { height: inputHeight, maxHeight: MAX_INPUT_HEIGHT }]}
+              style={[styles.input, { height: inputHeight, maxHeight: maxInputHeight }]}
               value={inputText}
               onChangeText={setInputText}
               placeholder="Message..."
               placeholderTextColor={COLORS.textSecondary}
               multiline
               numberOfLines={currentLines}
-              scrollEnabled={inputHeight >= MAX_INPUT_HEIGHT}
+              scrollEnabled={inputHeight >= maxInputHeight}
             />
           </View>
           <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
@@ -182,7 +185,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     borderRadius: 20,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     color: COLORS.text,
     fontSize: 15,
